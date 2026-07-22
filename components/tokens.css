@@ -172,19 +172,40 @@ os-status-badge { display: inline-flex; }
 .sidebar-logo-chip img { height: 28px; width: auto; max-width: 100%; display: block; }
 .sidebar-logo-chip svg { width: 28px; height: 28px; }
 
-/* Only used when logo-on-dark="true" — the logo file is a genuine
-   reversed/white variant, so no chip background is needed at all. Sits
-   directly on the dark sidebar, muted slightly like the footer badge so
-   it reads as a header rather than a button. */
+/* Default logo treatment (no show-brand-label, no logo-chip): the logo
+   is the only thing in the header, so center it and let it fill the
+   available width — "definitely in the middle, as large as the space
+   allows." max-height stops a near-square logo from dominating if one
+   ever gets used here. */
 .sidebar-logo-on-dark {
   display: flex;
   align-items: center;
+  justify-content: center;
+  width: 100%;
   text-decoration: none;
-  opacity: 0.92;
+  opacity: 0.95;
   transition: opacity 0.15s;
 }
 .sidebar-logo-on-dark:hover { opacity: 1; }
-.sidebar-logo-on-dark img { height: 32px; width: auto; max-width: 100%; display: block; }
+.sidebar-logo-on-dark img { width: 100%; max-width: 100%; height: auto; max-height: 72px; display: block; }
+
+/* Used when show-brand-label="true" (bare icon + text): a left-aligned
+   icon-and-label row instead of a centered hero logo, since it now
+   shares the row with text. Text is light-colored — this sits directly
+   on the dark sidebar, no chip. */
+.sidebar-logo-on-dark-labeled {
+  display: flex;
+  align-items: center;
+  gap: var(--space-s);
+  text-decoration: none;
+  opacity: 0.95;
+  transition: opacity 0.15s;
+  font-size: var(--font-size-h5);
+  font-weight: 700;
+  color: var(--color-neutral-0);
+}
+.sidebar-logo-on-dark-labeled:hover { opacity: 1; }
+.sidebar-logo-on-dark-labeled img { height: 28px; width: auto; max-width: 100%; display: block; }
 
 .sidebar-nav { flex: 1; padding: var(--space-base) 0; overflow-y: auto; }
 

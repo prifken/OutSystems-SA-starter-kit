@@ -160,7 +160,7 @@
         .join("");
 
       this.classList.add("sidebar");
-      const logoClass = logoChip ? "sidebar-logo-chip" : "sidebar-logo-on-dark";
+      const logoClass = logoChip ? "sidebar-logo-chip" : (showBrandLabel ? "sidebar-logo-on-dark-labeled" : "sidebar-logo-on-dark");
       this.innerHTML =
         '<div class="sidebar-header">' +
         '<a href="' + esc(homeHref) + '" class="' + logoClass + '">' +

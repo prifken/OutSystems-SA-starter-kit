@@ -92,16 +92,16 @@
     ];
 
     const aiSidebar = document.getElementById("aiSidebar");
-    aiSidebar.insight = "On-time delivery is down 6.2 points and PPM is up 3x since Q4 2025. The Q2 2026 audit finding traces to the same Line 3 ESD control gap cited in CAPA-2025-118 — that CAPA was marked closed in January but the underlying issue recurred within one quarter.";
+    aiSidebar.insight = "Same Line 3 ESD gap as CAPA-2025-118, closed in January — recurred within a quarter.";
     aiSidebar.recommendations = [
-      { title: "Escalate to supplier quality review board", description: "Repeat finding on a closed CAPA, two consecutive audit cycles below target — meets the review-board threshold in the sourcing policy." },
-      { title: "Hold new volume awards", description: "Recommend pausing additional MY2028 sourcing decisions for this supplier until CAPA-2026-041 closes and a follow-up audit confirms the fix." },
-      { title: "Verify second-source options", description: "F-Series rear harness is single-sourced here. Check Highline Precision Components' wiring harness capability before any hold takes effect." }
+      { title: "Escalate to review board", description: "Repeat finding on a closed CAPA meets the escalation threshold." },
+      { title: "Hold new volume awards", description: "Pause MY2028 sourcing until CAPA-2026-041 closes." },
+      { title: "Check second-source coverage", description: "F-Series rear harness is single-sourced here." }
     ];
     aiSidebar.activityLog = [
-      { text: "Pulled last 3 quality audits and CAPA history for DHS-4471", time: "2 min ago" },
-      { text: "Matched Q2 2026 finding against CAPA-2025-118 — same root cause, same line", time: "1 min ago" },
-      { text: "Checked sourcing records for single-source exposure", time: "just now" }
+      { text: "Pulled last 3 audits + CAPA history", time: "2 min ago" },
+      { text: "Matched Q2 2026 finding to CAPA-2025-118", time: "1 min ago" },
+      { text: "Checked single-source exposure", time: "just now" }
     ];
 
     document.getElementById("aiToggleBtn").addEventListener("click", () => aiSidebar.toggle());
