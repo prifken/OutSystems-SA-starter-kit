@@ -319,6 +319,8 @@ os-status-badge { display: inline-flex; }
   text-decoration: none;
   border: 1px solid;
   font-family: var(--font-family);
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .btn svg { width: 16px; height: 16px; }
@@ -554,6 +556,8 @@ os-status-badge { display: inline-flex; }
 .timeline-icon.complete { background: var(--color-success); color: white; }
 .timeline-icon.current { background: var(--color-primary); color: white; box-shadow: 0 0 0 4px var(--color-primary-light); }
 .timeline-icon.pending { background: var(--color-neutral-3); color: var(--color-neutral-6); }
+.timeline-icon.warning { background: var(--color-warning); color: white; }
+.timeline-icon.error { background: var(--color-error); color: white; }
 .timeline-icon svg { width: 14px; height: 14px; }
 
 .timeline-content { flex: 1; padding-top: var(--space-xs); }

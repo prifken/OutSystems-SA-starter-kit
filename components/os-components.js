@@ -56,7 +56,8 @@
     send: '<line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>',
     "file-text": '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line>',
     inbox: '<path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>',
-    logout: '<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line>'
+    logout: '<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line>',
+    briefcase: '<rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>'
   };
 
   function icon(name, size) {
@@ -380,7 +381,12 @@
 
   /* ============================================================
      os-status-timeline
-     Property: items [{title, user, date, state: complete|current|pending, initials, color, note}]
+     Property: items [{title, user, date, state, initials, color, note}]
+       state: complete | current | pending (default) | warning | error
+       Use 'error' for a failed/negative event (e.g. a failed audit) and
+       'warning' for a conditional/partial one — do NOT reuse 'complete'
+       (green check) just because the event happened in the past.
+       'complete' means the step succeeded, not merely that it occurred.
      ============================================================ */
   class OsStatusTimeline extends HTMLElement {
     connectedCallback() { if (!this._items) this._items = []; this.render(); }
@@ -392,7 +398,11 @@
       this.innerHTML = items
         .map((item, i) => {
           const state = item.state || "pending";
-          const iconHtml = state === "complete" ? icon("check", 14) : state === "current" ? String(i + 1) : String(i + 1);
+          const iconHtml =
+            state === "complete" ? icon("check", 14) :
+            state === "error" ? icon("x", 14) :
+            state === "warning" ? icon("alert-triangle", 14) :
+            state === "current" ? String(i + 1) : String(i + 1);
           return (
             '<div class="timeline-item">' +
             '<div class="timeline-icon ' + state + '">' + iconHtml + "</div>" +

@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Delta Harness Systems | Ford Supplier Quality Portal</title>
+<link rel="stylesheet" href="../../components/tokens.css">
+</head>
+<body>
+  <div class="layout">
+
+    <os-sidebar-nav active="suppliers" logo="ford-logo-placeholder.svg" brand="Ford Motor Company" home-href="dashboard.html">
+      <a href="dashboard.html" data-nav="dashboard" data-icon="grid">Dashboard</a>
+      <a href="dashboard.html" data-nav="suppliers" data-icon="briefcase">Suppliers</a>
+      <a href="#" data-nav="reports" data-icon="bar-chart">Reports</a>
+      <a href="#" data-nav="settings" data-icon="settings">Settings</a>
+    </os-sidebar-nav>
+
+    <main class="main-content">
+      <header class="header">
+        <div class="header-left">
+          <div class="breadcrumb">
+            <a href="dashboard.html">Dashboard</a><span class="breadcrumb-separator">/</span>
+            <a href="dashboard.html">Suppliers</a><span class="breadcrumb-separator">/</span>
+            <span>DHS-4471</span>
+          </div>
+          <h1 class="header-title">Delta Harness Systems
+            <os-status-badge variant="error" label="At Risk"></os-status-badge>
+            <os-status-badge variant="neutral" label="Wiring Harnesses"></os-status-badge>
+          </h1>
+          <p class="header-meta">DHS-4471 &middot; Puebla, MX &middot; Supplier since 2014 &middot; IATF 16949 certified</p>
+        </div>
+        <div class="header-actions">
+          <button class="btn btn-secondary" id="auditBtn">Schedule Audit</button>
+          <button class="btn btn-secondary" id="capaBtn">Open CAPA</button>
+          <button class="btn btn-primary" id="aiToggleBtn">AI Assistant</button>
+        </div>
+      </header>
+
+      <div class="page">
+        <os-tabs active="scorecard">
+
+          <div data-tab="scorecard" data-tab-label="Scorecard">
+            <div class="grid-4 mb-base">
+              <os-kpi-card label="On-Time Delivery" value="88.4%" variant="error" sub="Target: 95%" trend="down" trend-value="-6.2pt vs. Q4"></os-kpi-card>
+              <os-kpi-card label="Quality (PPM)" value="187" variant="error" sub="Target: &lt;50" trend="up" trend-value="+3x vs. Q4"></os-kpi-card>
+              <os-kpi-card label="Capacity Utilization" value="82%" variant="primary" sub="Rated capacity"></os-kpi-card>
+              <os-kpi-card label="Financial Risk Rating" value="Moderate" variant="warning" sub="D&amp;B updated Jun 2026"></os-kpi-card>
+            </div>
+            <os-card heading="Notes">
+              <p class="form-value">Awarded 2 of 3 harness programs for MY2027. Single-source on the F-Series rear harness — no qualified second source currently on file. Q2 2026 audit finding is a repeat of an unclosed Q4 2025 CAPA; see Audit History.</p>
+            </os-card>
+          </div>
+
+          <div data-tab="audits" data-tab-label="Audit History">
+            <os-card heading="Quality Audits">
+              <os-status-timeline id="auditTimeline"></os-status-timeline>
+            </os-card>
+          </div>
+
+          <div data-tab="capa" data-tab-label="Corrective Actions" data-tab-badge="1 open">
+            <os-card heading="Corrective &amp; Preventive Actions">
+              <os-data-table id="capaTable" empty-text="No corrective actions on file."></os-data-table>
+            </os-card>
+          </div>
+
+        </os-tabs>
+      </div>
+    </main>
+
+    <os-ai-sidebar id="aiSidebar" heading="AI Assistant"></os-ai-sidebar>
+  </div>
+
+  <script src="../../components/os-components.js"></script>
+  <script>
+    document.getElementById("auditTimeline").items = [
+      { title: "Q2 2026 Quality Audit — Failed", date: "Apr 22, 2026", state: "error", note: "3 major nonconformances: incoming inspection records incomplete, ESD control gap on Line 3, and the Q4 2025 corrective action for the same ESD gap was never closed." },
+      { title: "Q4 2025 Quality Audit — Conditional Pass", date: "Nov 14, 2025", state: "warning", note: "1 major, 4 minor nonconformances. CAPA-2025-118 opened for ESD control gap on Line 3." },
+      { title: "Q2 2025 Quality Audit — Passed", date: "May 9, 2025", state: "complete", note: "No major findings. 2 minor observations, both closed within 30 days." }
+    ];
+
+    const capaTable = document.getElementById("capaTable");
+    capaTable.columns = [
+      { key: "id", label: "CAPA #" },
+      { key: "issue", label: "Issue" },
+      { key: "status", label: "Status", type: "status" },
+      { key: "due", label: "Due / Closed" }
+    ];
+    capaTable.rows = [
+      { id: "CAPA-2026-041", issue: "ESD control gap, Line 3 (repeat of CAPA-2025-118)", status: "Open", statusVariant: "error", due: "Due Jul 30, 2026" },
+      { id: "CAPA-2025-118", issue: "ESD control gap, Line 3", status: "Closed", statusVariant: "neutral", due: "Closed Jan 20, 2026" }
+    ];
+
+    const aiSidebar = document.getElementById("aiSidebar");
+    aiSidebar.insight = "On-time delivery is down 6.2 points and PPM is up 3x since Q4 2025. The Q2 2026 audit finding traces to the same Line 3 ESD control gap cited in CAPA-2025-118 — that CAPA was marked closed in January but the underlying issue recurred within one quarter.";
+    aiSidebar.recommendations = [
+      { title: "Escalate to supplier quality review board", description: "Repeat finding on a closed CAPA, two consecutive audit cycles below target — meets the review-board threshold in the sourcing policy." },
+      { title: "Hold new volume awards", description: "Recommend pausing additional MY2028 sourcing decisions for this supplier until CAPA-2026-041 closes and a follow-up audit confirms the fix." },
+      { title: "Verify second-source options", description: "F-Series rear harness is single-sourced here. Check Highline Precision Components' wiring harness capability before any hold takes effect." }
+    ];
+    aiSidebar.activityLog = [
+      { text: "Pulled last 3 quality audits and CAPA history for DHS-4471", time: "2 min ago" },
+      { text: "Matched Q2 2026 finding against CAPA-2025-118 — same root cause, same line", time: "1 min ago" },
+      { text: "Checked sourcing records for single-source exposure", time: "just now" }
+    ];
+
+    document.getElementById("aiToggleBtn").addEventListener("click", () => aiSidebar.toggle());
+    document.getElementById("auditBtn").addEventListener("click", () => alert("Demo stub: wire this to your audit-scheduling flow."));
+    document.getElementById("capaBtn").addEventListener("click", () => alert("Demo stub: wire this to your CAPA intake form."));
+  </script>
+</body>
+</html>
