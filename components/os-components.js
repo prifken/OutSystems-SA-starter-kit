@@ -77,43 +77,47 @@
 
   /* ============================================================
      os-sidebar-nav
-     Attributes: active (matches a child <a data-nav="...">),
-                 logo (customer logo image path), brand (text next to
-                 logo, or alt text only if wordmark="true" — use wordmark
-                 when the logo image already contains the brand name),
-                 powered-by-logo (OutSystems logo path for the footer
-                 badge — defaults to "../../components/os_logo.png")
+     Attributes: active (matches a child <a data-nav="...">), logo
+                 (customer logo image path), brand (alt text, and the
+                 visible label only if show-brand-label="true"),
+                 show-brand-label, logo-chip, powered-by-logo (defaults
+                 to "../../components/os_logo.png")
 
-     Contrast rule (read before changing this component): the customer
-     logo renders inside a white chip (.sidebar-logo-chip) by DEFAULT,
-     regardless of sidebar theme. This is deliberate, not decoration —
-     an unknown customer logo (dark ink, light ink, a multi-color state
-     seal, a transparent PNG designed for a light background) must never
-     be placed directly against this sidebar's dark background, because
-     there's no way to guarantee it'll be legible. The white chip
-     guarantees contrast by construction instead of relying on a manual
-     check per client. This is the right default for the vast majority
-     of real client logos, which only exist in a dark-ink-on-light
-     variant.
+     DEFAULT BEHAVIOR: the logo renders directly on the dark sidebar —
+     no white background, no added text. Most real logos (a wordmark,
+     or a self-contained badge like a blue oval with the company name
+     scripted into it) already read fine on a dark background and
+     already say what the company is. Don't add visual weight they
+     don't need.
 
-     If — and only if — you have an actual reversed/white variant of the
-     logo (some brands provide one, e.g. OutSystems' own
-     os_logo_reversed.png), set logo-on-dark="true" to render it directly
-     on the sidebar with no chip, matching how OutSystems' own
-     presentation framework handles this (see
-     projects/outsystems-o11-odc/CLAUDE.md in the source SA workspace —
-     "White logo for dark bg... opacity 0.8, brightens on hover"). Do
-     NOT set logo-on-dark="true" for a normal dark-ink client logo — it
-     will disappear into the sidebar. When in doubt, leave it unset and
-     use the chip.
+     Before using a new logo, look at the actual image and decide:
 
-     The "Powered by OutSystems" footer badge uses a third treatment:
-     it's OutSystems' own known dark-ink asset, so instead of a chip or a
-     reversed file, `filter: brightness(0) invert(1)` (see tokens.css
-     .powered-by img) recolors it on the fly. Three different logos,
-     three different treatments, all solving the same problem: never
-     place an unknown- or wrong-colored logo directly against this dark
-     background.
+     1. Does the artwork already contain the company's name as legible
+        text (a wordmark, or a badge/oval/crest with the name inside
+        it)? If yes — default behavior is correct, do nothing more.
+        If the image is a bare icon or symbol with no legible name in
+        it, set show-brand-label="true" so the `brand` text renders
+        next to it — a symbol alone doesn't tell anyone what it is.
+
+     2. Does the logo have its own opaque background (a badge/oval/
+        crest shape with a fill), or is it a verified reversed/white
+        variant made for dark backgrounds? If yes — default behavior
+        is correct. If it's a transparent PNG with dark or unknown-
+        color ink and NO opaque background of its own, direct
+        placement will make it unreadable — that is the one real case
+        for set logo-chip="true" (wraps it in a white background).
+        Check for a reversed/white variant from the brand first; only
+        reach for the chip if one doesn't exist.
+
+     3. Always confirm with an actual rendered screenshot before
+        calling a build done — this is a judgment call about a specific
+        image, not something a CSS default can get right for every
+        logo. See the kit's test checklist.
+
+     The "Powered by OutSystems" footer badge is a separate, narrower
+     case: it's OutSystems' own known dark-ink asset, so instead of a
+     chip `filter: brightness(0) invert(1)` (tokens.css .powered-by img)
+     recolors it on the fly rather than needing a decision each time.
 
      Usage:
        <os-sidebar-nav active="dashboard" logo="../../components/client-logo.png" brand="Acme Corp">
@@ -130,15 +134,11 @@
       const logo = this.getAttribute("logo") || "os_logo.png";
       const brand = this.getAttribute("brand") || "OutSystems";
       const homeHref = this.getAttribute("home-href") || "dashboard.html";
-      // If the logo image is already a full wordmark (icon + brand name baked
-      // into one image, e.g. os_logo.png), don't also render a text label
-      // next to it — that duplicates the brand name and overflows the
-      // sidebar. Set wordmark="true" for that case. Omit it for an icon-only
-      // mark that still needs a text label beside it.
-      const isWordmark = this.getAttribute("wordmark") === "true";
-      // See the contrast-rule comment above: only set this when the logo
-      // file itself is a genuine reversed/white variant. Skips the chip.
-      const logoOnDark = this.getAttribute("logo-on-dark") === "true";
+      // See the decision process in the comment above. Both default to
+      // false: no added text, no chip — direct placement is correct for
+      // most real logos.
+      const showBrandLabel = this.getAttribute("show-brand-label") === "true";
+      const logoChip = this.getAttribute("logo-chip") === "true";
       const poweredByLogo = this.getAttribute("powered-by-logo") || "../../components/os_logo.png";
 
       // Capture nav links before we overwrite innerHTML.
@@ -160,12 +160,12 @@
         .join("");
 
       this.classList.add("sidebar");
-      const logoClass = logoOnDark ? "sidebar-logo-on-dark" : "sidebar-logo-chip";
+      const logoClass = logoChip ? "sidebar-logo-chip" : "sidebar-logo-on-dark";
       this.innerHTML =
         '<div class="sidebar-header">' +
         '<a href="' + esc(homeHref) + '" class="' + logoClass + '">' +
         '<img src="' + esc(logo) + '" alt="' + esc(brand) + '">' +
-        (isWordmark ? "" : "<span>" + esc(brand) + "</span>") +
+        (showBrandLabel ? "<span>" + esc(brand) + "</span>" : "") +
         "</a>" +
         "</div>" +
         '<nav class="sidebar-nav">' + navHtml + "</nav>" +

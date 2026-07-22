@@ -57,7 +57,7 @@ every piece of it.
 
 | Element | Purpose | Config |
 |---|---|---|
-| `<os-sidebar-nav>` | Fixed left nav, dark theme | attrs: `active`, `logo`, `brand`, `wordmark`, `powered-by-logo`, `home-href`; children: `<a data-nav data-icon>` |
+| `<os-sidebar-nav>` | Fixed left nav, dark theme | attrs: `active`, `logo`, `brand`, `show-brand-label`, `logo-chip`, `powered-by-logo`, `home-href`; children: `<a data-nav data-icon>` |
 | `<os-kpi-card>` | Metric tile with optional trend | attrs: `label`, `value`, `variant`, `sub`, `trend`, `trend-value` |
 | `<os-status-badge>` | Color-coded pill | attrs: `variant` (primary/success/warning/error/info/neutral), `label` |
 | `<os-card>` | Container with optional header + action link | attrs: `heading`, `action-label`, `action-href`; children become the body |
@@ -109,36 +109,44 @@ document is already built before any component upgrades. Keep this
 ordering in any new screen — script tag(s) go right before your own
 page-specific `<script>` block, both near `</body>`.
 
-## Contrast Rule: Never Guess Whether a Logo Is Legible
+## Logo Placement: Look at the Image, Don't Default to a Box Around It
 
-Every prototype places two different logos on the dark sidebar, and they get
-opposite treatments — this is not a style choice, it's what prevents a logo
-from silently becoming invisible:
+The customer logo (top of sidebar) renders **directly on the dark
+background by default — no white box, no added text.** Most real logos
+already work fine as-is: a wordmark, or a self-contained badge like a
+colored oval with the company name scripted inside it, reads clearly on
+dark and already says what the company is. Boxing every logo in a white
+chip "to be safe" adds visual clutter most logos don't need — don't do
+that as a default.
 
-- **Customer logo (top, `logo`/`brand`/`wordmark` attrs)** — renders inside
-  `.sidebar-logo-chip`, a white background, ALWAYS. You don't know the
-  customer's logo color in advance — it might be dark ink, light ink, a
-  multi-color state seal, or a PNG designed to sit on a white page (this is
-  the normal case for crests/seals — never assume it'll work on a dark
-  background). The white chip guarantees legibility by construction, so
-  there's nothing to manually check or eyeball. Do not remove the chip
-  background "to simplify the design." Do not place a customer logo directly
-  on `.sidebar` background color.
-- **"Powered by OutSystems" (bottom, `powered-by-logo` attr)** — the
-  opposite case, because it's OutSystems' own asset and its color is known
-  and constant. Instead of a chip, `.powered-by img` applies
-  `filter: brightness(0) invert(1)` to turn the dark wordmark into a plain
-  white silhouette that reads clearly on the dark sidebar, muted to 70%
-  opacity so it never competes with the customer logo above. This exact
-  mechanism is a proven pattern lifted from 20+ real client POCs — don't
-  reinvent it.
+**Before using a new logo, look at it and decide two things:**
 
-**If you ever add a new place a logo can appear** (a login screen, a report
-header, anything outside the sidebar): apply the same rule. Unknown-color
-logo → give it a light/neutral background of its own. Known, single-source
-asset you control → filter/recolor it to fit the surrounding theme. Never
-place an unknown logo directly against a dark or saturated background and
-assume it'll be fine — that's exactly the bug this section exists to prevent.
+1. **Does the artwork already contain the company's name as legible
+   text?** (a wordmark, or a badge/oval/crest with the name inside it —
+   e.g. Ford's blue oval has "Ford" scripted into it). If yes, do
+   nothing — default behavior is correct. If the logo is a bare icon or
+   abstract symbol with no legible name, set `show-brand-label="true"`
+   so the `brand` attribute renders as a text label next to it — an icon
+   alone doesn't tell anyone what it is.
+2. **Does the logo have its own opaque background** (a badge/oval/crest
+   shape with a fill), or is it a verified reversed/white variant made
+   for dark backgrounds? If yes, default behavior is correct — it'll
+   read fine directly on the sidebar. If it's a transparent PNG with
+   dark or unknown-color ink and no background of its own, direct
+   placement will make it disappear. That's the one real case for
+   `logo-chip="true"` (wraps it in a white background) — but check
+   whether the brand has a reversed/white variant first; reach for the
+   chip only if one genuinely doesn't exist.
+
+**Always confirm with an actual rendered screenshot before calling a
+build done.** This is a judgment call about one specific image — there's
+no CSS default that gets every logo right, so the real check is looking
+at the render, not trusting a rule to have handled it.
+
+The "Powered by OutSystems" footer badge is a narrower, separate case:
+it's OutSystems' own known dark-ink asset, so `.powered-by img` applies
+`filter: brightness(0) invert(1)` (tokens.css) to recolor it on the fly
+rather than needing a per-logo decision — that one's safe to leave alone.
 
 ## What This Kit Deliberately Does Not Have
 
