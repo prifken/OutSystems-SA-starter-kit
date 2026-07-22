@@ -1,0 +1,9 @@
+{
+  "name": "rifken-starter-kit-scripts",
+  "private": true,
+  "description": "Maintainer/QA tooling for this kit. NOT required to build or run any prototype — those stay zero-install. Run `npm install` in this scripts/ folder once before using anything here.",
+  "dependencies": {
+    "pngjs": "^7.0.0",
+    "playwright": "^1.56.1"
+  }
+}
