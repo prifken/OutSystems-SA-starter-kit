@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard | OS Ticketing</title>
+<!--
+  Screen 1 of the reference example: ticket list dashboard.
+  Everything here is composed from ../../components/ — nothing
+  custom is invented in this file. If you're building your own
+  prototype, this is the file to copy first.
+-->
+<link rel="stylesheet" href="../../components/tokens.css">
+</head>
+<body>
+  <div class="layout">
+
+    <!-- Sidebar: same markup on every screen, only the `active` attribute changes.
+         "Tickets" and "Dashboard" both point here because this 3-screen example
+         only has one list screen — in a real POC give each its own page. -->
+    <os-sidebar-nav active="dashboard" logo="../../components/os_logo_reversed.png" brand="OutSystems" wordmark="true" logo-on-dark="true" home-href="dashboard.html">
+      <a href="dashboard.html" data-nav="dashboard" data-icon="grid">Dashboard</a>
+      <a href="dashboard.html" data-nav="tickets" data-icon="ticket">Tickets</a>
+      <a href="#" data-nav="reports" data-icon="bar-chart">Reports</a>
+      <a href="#" data-nav="settings" data-icon="settings">Settings</a>
+    </os-sidebar-nav>
+
+    <main class="main-content">
+      <header class="header">
+        <div class="header-left">
+          <div>
+            <h1 class="header-title">Dashboard</h1>
+            <p class="header-subtitle">Support ticket overview</p>
+          </div>
+        </div>
+        <div class="header-actions">
+          <div class="avatar">JD</div>
+          <a href="new-ticket.html" class="btn btn-primary">+ New Ticket</a>
+        </div>
+      </header>
+
+      <div class="page">
+
+        <!-- KPI row -->
+        <div class="grid-4 mb-m">
+          <os-kpi-card label="Open Tickets" value="128" variant="primary" sub="Across all queues"></os-kpi-card>
+          <os-kpi-card label="SLA at Risk" value="14" variant="warning" sub="Due within 4 hours"></os-kpi-card>
+          <os-kpi-card label="Avg Resolution Time" value="4.2h" variant="primary" sub="Last 30 days" trend="down" trend-value="-8%"></os-kpi-card>
+          <os-kpi-card label="CSAT Score" value="94%" variant="success" sub="Last 30 days" trend="up" trend-value="+2%"></os-kpi-card>
+        </div>
+
+        <!-- Search + filter -->
+        <div class="mb-base">
+          <os-search-filter-bar id="filterBar" placeholder="Search by subject or requester...">
+            <select class="form-control" id="statusFilter">
+              <option value="">All Statuses</option>
+              <option value="Open">Open</option>
+              <option value="Pending">Pending</option>
+              <option value="Resolved">Resolved</option>
+              <option value="Escalated">Escalated</option>
+            </select>
+          </os-search-filter-bar>
+        </div>
+
+        <!-- Ticket table -->
+        <os-card heading="All Tickets" action-label="Export" action-href="#">
+          <os-data-table id="ticketsTable" row-href-template="ticket-detail.html?id={id}" clickable empty-text="No tickets match your filters."></os-data-table>
+        </os-card>
+
+      </div>
+    </main>
+  </div>
+
+  <!--
+    Loaded at the end of body, not in <head>. Custom elements that read
+    their light-DOM children in connectedCallback (os-tabs, os-form-field,
+    os-wizard-stepper, os-card, os-sidebar-nav) need those children to
+    already exist in the DOM before they upgrade — loading the script
+    after all the markup guarantees that. Keep this ordering in any
+    screen you build from this example.
+  -->
+  <script src="../../components/os-components.js"></script>
+  <script>
+    // The full ticket set for this demo. In a real POC this would come from
+    // an ODC REST API call — see patterns/odc-api-wiring/ in the SA toolkit
+    // this kit was distilled from. Kept as a flat array here on purpose:
+    // zero build step means zero data layer, just JS.
+    const TICKETS = [
+      { id: "TCK-1042", subject: "VPN connection drops every 10 minutes", requester: "Maria Alves", status: "Open", statusVariant: "info", priority: "High", priorityVariant: "warning", assignee: { name: "Sofia Reis", initials: "SR", color: "#7c3aed" }, updated: "2h ago" },
+      { id: "TCK-1041", subject: "Request access to Finance shared drive", requester: "Tom Becker", status: "Pending", statusVariant: "warning", priority: "Medium", priorityVariant: "primary", assignee: { name: "Diego Costa", initials: "DC", color: "#1068eb" }, updated: "5h ago" },
+      { id: "TCK-1039", subject: "Laptop won't power on after firmware update", requester: "Priya Nair", status: "Escalated", statusVariant: "error", priority: "Critical", priorityVariant: "error", assignee: { name: "Sofia Reis", initials: "SR", color: "#7c3aed" }, updated: "1d ago" },
+      { id: "TCK-1035", subject: "Set up new hire workstation — Lucas Ferreira", requester: "Ines Matos", status: "Resolved", statusVariant: "success", priority: "Medium", priorityVariant: "primary", assignee: { name: "Diego Costa", initials: "DC", color: "#1068eb" }, updated: "2d ago" },
+      { id: "TCK-1033", subject: "Shared printer offline on 3rd floor", requester: "Ana Silva", status: "Open", statusVariant: "info", priority: "Low", priorityVariant: "neutral", assignee: { name: "Sofia Reis", initials: "SR", color: "#7c3aed" }, updated: "2d ago" },
+      { id: "TCK-1028", subject: "Outlook not syncing calendar invites", requester: "James Carter", status: "Pending", statusVariant: "warning", priority: "Medium", priorityVariant: "primary", assignee: { name: "Diego Costa", initials: "DC", color: "#1068eb" }, updated: "3d ago" }
+    ];
+
+    const table = document.getElementById("ticketsTable");
+    table.columns = [
+      { key: "id", label: "ID" },
+      { key: "subject", label: "Subject" },
+      { key: "requester", label: "Requester" },
+      { key: "status", label: "Status", type: "status" },
+      { key: "priority", label: "Priority", type: "status" },
+      { key: "assignee", label: "Assigned To", type: "user" },
+      { key: "updated", label: "Updated" }
+    ];
+
+    let searchValue = "";
+    let statusValue = "";
+
+    function applyFilters() {
+      const q = searchValue.trim().toLowerCase();
+      table.rows = TICKETS.filter((t) => {
+        const matchesSearch = !q || t.subject.toLowerCase().includes(q) || t.requester.toLowerCase().includes(q);
+        const matchesStatus = !statusValue || t.status === statusValue;
+        return matchesSearch && matchesStatus;
+      });
+    }
+
+    applyFilters();
+
+    document.getElementById("filterBar").addEventListener("os-search", (e) => {
+      searchValue = e.detail.value;
+      applyFilters();
+    });
+
+    document.getElementById("statusFilter").addEventListener("change", (e) => {
+      statusValue = e.target.value;
+      applyFilters();
+    });
+  </script>
+</body>
+</html>

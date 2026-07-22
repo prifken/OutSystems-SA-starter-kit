@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ticket TCK-1042 | OS Ticketing</title>
+<!--
+  Screen 2 of the reference example: ticket detail.
+  Demonstrates os-tabs, os-status-timeline, os-modal, and os-ai-sidebar.
+  Content is static (like a single hardcoded record) — in a real POC,
+  swap the hardcoded values for a fetch-by-id call to your API.
+-->
+<link rel="stylesheet" href="../../components/tokens.css">
+</head>
+<body>
+  <div class="layout">
+
+    <os-sidebar-nav active="tickets" logo="../../components/os_logo_reversed.png" brand="OutSystems" wordmark="true" logo-on-dark="true" home-href="dashboard.html">
+      <a href="dashboard.html" data-nav="dashboard" data-icon="grid">Dashboard</a>
+      <a href="dashboard.html" data-nav="tickets" data-icon="ticket">Tickets</a>
+      <a href="#" data-nav="reports" data-icon="bar-chart">Reports</a>
+      <a href="#" data-nav="settings" data-icon="settings">Settings</a>
+    </os-sidebar-nav>
+
+    <main class="main-content" id="mainContent">
+      <header class="header" style="flex-direction: column; align-items: stretch; gap: var(--space-base); padding-bottom: 0;">
+        <div class="flex justify-between items-center" style="width: 100%;">
+          <div>
+            <nav class="breadcrumb">
+              <a href="dashboard.html">Dashboard</a>
+              <span class="breadcrumb-separator">&rsaquo;</span>
+              <a href="dashboard.html">Tickets</a>
+              <span class="breadcrumb-separator">&rsaquo;</span>
+              <span>TCK-1042</span>
+            </nav>
+            <div class="flex items-center gap-s">
+              <h1 class="header-title">VPN connection drops every 10 minutes</h1>
+              <os-status-badge id="ticketStatusBadge" variant="info" label="Open"></os-status-badge>
+              <os-status-badge variant="warning" label="High Priority"></os-status-badge>
+            </div>
+            <p class="header-meta">TCK-1042 &middot; Opened by Maria Alves &middot; Updated 2 hours ago</p>
+          </div>
+          <div class="header-actions">
+            <button class="btn btn-secondary" id="escalateBtn">Escalate</button>
+            <button class="btn btn-secondary" id="assignBtn">Assign</button>
+            <button class="btn btn-success" id="resolveBtn">Resolve</button>
+            <button class="btn btn-ai" id="aiToggleBtn">AI Assistant</button>
+          </div>
+        </div>
+      </header>
+
+      <div class="page">
+        <os-tabs active="details">
+
+          <div data-tab="details" data-tab-label="Details">
+            <os-card heading="Ticket Information" class="mb-base">
+              <div class="form-row">
+                <div class="form-group">
+                  <span class="form-label">Ticket ID</span>
+                  <span class="form-value emphasis">TCK-1042</span>
+                </div>
+                <div class="form-group">
+                  <span class="form-label">Category</span>
+                  <span class="form-value">Network &amp; VPN</span>
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <span class="form-label">Requester</span>
+                  <span class="form-value">Maria Alves &middot; maria.alves@acme.com</span>
+                </div>
+                <div class="form-group">
+                  <span class="form-label">Assigned To</span>
+                  <span class="form-value">
+                    <div class="user-cell">
+                      <div class="avatar avatar-sm" style="background:#7c3aed;">SR</div>
+                      <span>Sofia Reis</span>
+                    </div>
+                  </span>
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <span class="form-label">Created</span>
+                  <span class="form-value">Jul 20, 2026 at 9:12 AM</span>
+                </div>
+                <div class="form-group">
+                  <span class="form-label">SLA Due</span>
+                  <span class="form-value text-warning">Jul 22, 2026 at 1:00 PM</span>
+                </div>
+              </div>
+            </os-card>
+
+            <os-card heading="Description">
+              <p class="form-value">
+                User reports the VPN client disconnects roughly every 10 minutes while working
+                from home, requiring a manual reconnect each time. Started after the client
+                update pushed on Jul 18. Affects both wired and Wi-Fi connections. Two other
+                remote employees on the same ISP have not reported the issue.
+              </p>
+            </os-card>
+          </div>
+
+          <div data-tab="activity" data-tab-label="Activity">
+            <os-card heading="Ticket History">
+              <os-status-timeline id="ticketTimeline"></os-status-timeline>
+            </os-card>
+          </div>
+
+          <div data-tab="attachments" data-tab-label="Attachments" data-tab-badge="0">
+            <os-card>
+              <os-empty-state icon="paperclip" heading="No Attachments" text="Files shared by the requester or agent will show up here."></os-empty-state>
+            </os-card>
+          </div>
+
+        </os-tabs>
+      </div>
+    </main>
+
+    <!-- Resolve confirmation modal -->
+    <os-modal id="resolveModal" modal-title="Resolve this ticket?" confirm-label="Resolve Ticket" cancel-label="Cancel">
+      <p>This will mark <strong>TCK-1042</strong> as resolved and notify the requester by email. You can reopen it later if the issue recurs.</p>
+    </os-modal>
+
+    <!-- AI Assistant sidebar -->
+    <os-ai-sidebar id="aiSidebar" heading="AI Assistant"></os-ai-sidebar>
+  </div>
+
+  <!-- Loaded at the end of body — see the comment in dashboard.html for why. -->
+  <script src="../../components/os-components.js"></script>
+  <script>
+    const timeline = document.getElementById("ticketTimeline");
+    timeline.items = [
+      { title: "Ticket created", user: "Maria Alves", initials: "MA", color: "#e9a100", date: "Jul 20, 2026 at 9:12 AM", state: "complete" },
+      { title: "Assigned to Sofia Reis", user: "Auto-Assignment Rule", initials: "AR", color: "#adb5bd", date: "Jul 20, 2026 at 9:13 AM", state: "complete" },
+      { title: "Diagnostic call with requester", user: "Sofia Reis", initials: "SR", color: "#7c3aed", date: "Jul 20, 2026 at 2:40 PM", state: "complete", note: "Confirmed client version 4.8.2, gathered connection logs, scheduled follow-up." },
+      { title: "Escalated to Network Engineering", user: "Sofia Reis", initials: "SR", color: "#7c3aed", date: "Jul 21, 2026 at 11:05 AM", state: "current" },
+      { title: "Root cause confirmed & fix deployed", state: "pending" }
+    ];
+
+    // AI sidebar content — static demo data. Wire this to a real endpoint
+    // if the client wants a working assistant (see patterns/odc-api-wiring/).
+    const aiSidebar = document.getElementById("aiSidebar");
+    aiSidebar.insight = "This ticket matches a known VPN client regression from the Jul 18 update. Two similar tickets were resolved by updating the split-tunnel config — see the recommendation below.";
+    aiSidebar.recommendations = [
+      { title: "Similar ticket resolved", description: "TCK-0998 (same symptom, same client version) was closed by Sofia Reis after disabling split-tunnel routing." },
+      { title: "Suggested KB article", description: "\"VPN Client 4.8.x — Reconnect Loop on Split-Tunnel Networks\" — link this in your reply." },
+      { title: "Draft reply available", description: "A reply confirming the fix and asking the user to update client settings is ready to review." },
+      { title: "Check ISP overlap", description: "Cross-reference other open tickets on the same ISP before closing, in case this is network-side." }
+    ];
+    aiSidebar.activityLog = [
+      { text: "Ticket context analyzed", time: "2 min ago" },
+      { text: "Matched against 340 resolved tickets", time: "2 min ago" },
+      { text: "Draft reply generated", time: "1 min ago" }
+    ];
+
+    document.getElementById("aiToggleBtn").addEventListener("click", () => aiSidebar.toggle());
+
+    const resolveModal = document.getElementById("resolveModal");
+    document.getElementById("resolveBtn").addEventListener("click", () => resolveModal.open());
+    resolveModal.addEventListener("os-modal-confirm", () => {
+      document.getElementById("ticketStatusBadge").setAttribute("variant", "success");
+      document.getElementById("ticketStatusBadge").setAttribute("label", "Resolved");
+    });
+
+    // Escalate / Assign are left as demo stubs — wire to your API or a
+    // second os-modal the same way resolveModal is wired above.
+    document.getElementById("escalateBtn").addEventListener("click", () => alert("Demo stub: wire this to your escalation flow."));
+    document.getElementById("assignBtn").addEventListener("click", () => alert("Demo stub: wire this to an assignee picker."));
+  </script>
+</body>
+</html>

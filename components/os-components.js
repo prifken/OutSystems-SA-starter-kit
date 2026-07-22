@@ -1,0 +1,811 @@
+/* ============================================================
+   RIFKEN METHOD TOOLKIT — COMPONENT LIBRARY
+   ============================================================
+   Real custom elements (customElements.define), rendered into
+   LIGHT DOM (no Shadow DOM). This is deliberate: it lets a page
+   override --color-primary etc. from a <style> block and have
+   every component pick up the change, the same way SAs already
+   rebrand OutSystems UI HTML prototypes for a client.
+
+   Every class in the HTML these components render comes from
+   ../components/tokens.css. There is no CSS in this file.
+
+   How to use any component: set attributes for simple config,
+   set a JS property (e.g. `el.rows = [...]`) for list/array data.
+   Components with structured children (os-tabs, os-wizard-stepper,
+   os-card, os-modal, os-form-field) read their light-DOM children
+   once and rebuild around them — write the children like plain
+   HTML, the component does the rest.
+   ============================================================ */
+
+(function () {
+  "use strict";
+
+  /* ----------------------------------------------------------
+     ICON SET
+     Inline SVG strings (no fetch — works under file:// with zero
+     network requests). 24x24 viewBox, 2px stroke, currentColor.
+     Add new icons here and they're available to every component.
+     ---------------------------------------------------------- */
+  const ICONS = {
+    grid: '<rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect>',
+    ticket: '<path d="M3 9a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v2a2 2 0 0 0 0 4v2a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-2a2 2 0 0 0 0-4z"></path><path d="M9 9v6" stroke-dasharray="1 2"></path>',
+    "bar-chart": '<line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line>',
+    settings: '<circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>',
+    search: '<circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line>',
+    "chevron-down": '<polyline points="6 9 12 15 18 9"></polyline>',
+    "chevron-left": '<polyline points="15 18 9 12 15 6"></polyline>',
+    "chevron-right": '<polyline points="9 18 15 12 9 6"></polyline>',
+    "trend-up": '<polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline>',
+    "trend-down": '<polyline points="23 18 13.5 8.5 8.5 13.5 1 6"></polyline><polyline points="17 18 23 18 23 12"></polyline>',
+    x: '<line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line>',
+    check: '<polyline points="20 6 9 17 4 12"></polyline>',
+    "alert-triangle": '<path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line>',
+    "alert-circle": '<circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line>',
+    clock: '<circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline>',
+    user: '<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle>',
+    "user-plus": '<path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><line x1="20" y1="8" x2="20" y2="14"></line><line x1="17" y1="11" x2="23" y2="11"></line>',
+    "arrow-up-circle": '<circle cx="12" cy="12" r="10"></circle><polyline points="16 12 12 8 8 12"></polyline><line x1="12" y1="16" x2="12" y2="8"></line>',
+    paperclip: '<path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path>',
+    upload: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line>',
+    download: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line>',
+    calendar: '<rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line>',
+    plus: '<line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line>',
+    edit: '<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>',
+    sparkles: '<path d="M12 2a4 4 0 0 1 4 4v2a4 4 0 0 1-8 0V6a4 4 0 0 1 4-4z"></path><path d="M16 12v2a4 4 0 0 1-8 0v-2"></path><circle cx="12" cy="20" r="2"></circle><line x1="12" y1="18" x2="12" y2="16"></line>',
+    send: '<line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>',
+    "file-text": '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line>',
+    inbox: '<path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>',
+    logout: '<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line>'
+  };
+
+  function icon(name, size) {
+    const s = size || 16;
+    const body = ICONS[name] || ICONS.inbox;
+    return '<svg width="' + s + '" height="' + s + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + body + "</svg>";
+  }
+
+  function esc(str) {
+    if (str === null || str === undefined) return "";
+    return String(str)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  }
+
+  /* ============================================================
+     os-sidebar-nav
+     Attributes: active (matches a child <a data-nav="...">),
+                 logo (customer logo image path), brand (text next to
+                 logo, or alt text only if wordmark="true" — use wordmark
+                 when the logo image already contains the brand name),
+                 powered-by-logo (OutSystems logo path for the footer
+                 badge — defaults to "../../components/os_logo.png")
+
+     Contrast rule (read before changing this component): the customer
+     logo renders inside a white chip (.sidebar-logo-chip) by DEFAULT,
+     regardless of sidebar theme. This is deliberate, not decoration —
+     an unknown customer logo (dark ink, light ink, a multi-color state
+     seal, a transparent PNG designed for a light background) must never
+     be placed directly against this sidebar's dark background, because
+     there's no way to guarantee it'll be legible. The white chip
+     guarantees contrast by construction instead of relying on a manual
+     check per client. This is the right default for the vast majority
+     of real client logos, which only exist in a dark-ink-on-light
+     variant.
+
+     If — and only if — you have an actual reversed/white variant of the
+     logo (some brands provide one, e.g. OutSystems' own
+     os_logo_reversed.png), set logo-on-dark="true" to render it directly
+     on the sidebar with no chip, matching how OutSystems' own
+     presentation framework handles this (see
+     projects/outsystems-o11-odc/CLAUDE.md in the source SA workspace —
+     "White logo for dark bg... opacity 0.8, brightens on hover"). Do
+     NOT set logo-on-dark="true" for a normal dark-ink client logo — it
+     will disappear into the sidebar. When in doubt, leave it unset and
+     use the chip.
+
+     The "Powered by OutSystems" footer badge uses a third treatment:
+     it's OutSystems' own known dark-ink asset, so instead of a chip or a
+     reversed file, `filter: brightness(0) invert(1)` (see tokens.css
+     .powered-by img) recolors it on the fly. Three different logos,
+     three different treatments, all solving the same problem: never
+     place an unknown- or wrong-colored logo directly against this dark
+     background.
+
+     Usage:
+       <os-sidebar-nav active="dashboard" logo="../../components/client-logo.png" brand="Acme Corp">
+         <a href="dashboard.html" data-nav="dashboard" data-icon="grid">Dashboard</a>
+         <a href="tickets.html"   data-nav="tickets"   data-icon="ticket">Tickets</a>
+       </os-sidebar-nav>
+     ============================================================ */
+  class OsSidebarNav extends HTMLElement {
+    connectedCallback() {
+      if (this._rendered) return;
+      this._rendered = true;
+
+      const active = this.getAttribute("active") || "";
+      const logo = this.getAttribute("logo") || "os_logo.png";
+      const brand = this.getAttribute("brand") || "OutSystems";
+      const homeHref = this.getAttribute("home-href") || "dashboard.html";
+      // If the logo image is already a full wordmark (icon + brand name baked
+      // into one image, e.g. os_logo.png), don't also render a text label
+      // next to it — that duplicates the brand name and overflows the
+      // sidebar. Set wordmark="true" for that case. Omit it for an icon-only
+      // mark that still needs a text label beside it.
+      const isWordmark = this.getAttribute("wordmark") === "true";
+      // See the contrast-rule comment above: only set this when the logo
+      // file itself is a genuine reversed/white variant. Skips the chip.
+      const logoOnDark = this.getAttribute("logo-on-dark") === "true";
+      const poweredByLogo = this.getAttribute("powered-by-logo") || "../../components/os_logo.png";
+
+      // Capture nav links before we overwrite innerHTML.
+      const links = Array.from(this.children).filter((el) => el.tagName === "A");
+      const navHtml = links
+        .map((a) => {
+          const key = a.getAttribute("data-nav") || "";
+          const iconName = a.getAttribute("data-icon") || "inbox";
+          const badge = a.getAttribute("data-badge");
+          const isActive = key === active;
+          return (
+            '<a href="' + esc(a.getAttribute("href") || "#") + '" class="nav-item' + (isActive ? " active" : "") + '" data-nav="' + esc(key) + '">' +
+            icon(iconName, 20) +
+            "<span>" + esc(a.textContent.trim()) + "</span>" +
+            (badge ? '<span class="nav-badge">' + esc(badge) + "</span>" : "") +
+            "</a>"
+          );
+        })
+        .join("");
+
+      this.classList.add("sidebar");
+      const logoClass = logoOnDark ? "sidebar-logo-on-dark" : "sidebar-logo-chip";
+      this.innerHTML =
+        '<div class="sidebar-header">' +
+        '<a href="' + esc(homeHref) + '" class="' + logoClass + '">' +
+        '<img src="' + esc(logo) + '" alt="' + esc(brand) + '">' +
+        (isWordmark ? "" : "<span>" + esc(brand) + "</span>") +
+        "</a>" +
+        "</div>" +
+        '<nav class="sidebar-nav">' + navHtml + "</nav>" +
+        '<div class="sidebar-footer">' +
+        '<div class="powered-by">' +
+        '<div class="powered-by-label">Powered by</div>' +
+        '<img src="' + esc(poweredByLogo) + '" alt="OutSystems">' +
+        "</div>" +
+        "</div>";
+    }
+  }
+
+  /* ============================================================
+     os-kpi-card
+     Attributes: label, value, variant (primary|success|warning|error),
+                 sub (subtext), trend (up|down), trend-value
+     ============================================================ */
+  class OsKpiCard extends HTMLElement {
+    connectedCallback() {
+      this.render();
+    }
+    static get observedAttributes() { return ["label", "value", "variant", "sub", "trend", "trend-value"]; }
+    attributeChangedCallback() { if (this._rendered) this.render(); }
+    render() {
+      this._rendered = true;
+      const variant = this.getAttribute("variant") || "primary";
+      const label = this.getAttribute("label") || "";
+      const value = this.getAttribute("value") || "";
+      const sub = this.getAttribute("sub") || "";
+      const trend = this.getAttribute("trend");
+      const trendValue = this.getAttribute("trend-value") || "";
+
+      this.classList.add("kpi-card");
+      this.setAttribute("data-variant", variant);
+
+      let trendHtml = "";
+      if (trend) {
+        trendHtml =
+          '<span class="kpi-trend ' + (trend === "up" ? "up" : "down") + '">' +
+          icon(trend === "up" ? "trend-up" : "trend-down", 12) +
+          esc(trendValue) +
+          "</span>";
+      }
+
+      this.innerHTML =
+        '<div class="kpi-label">' + esc(label) + "</div>" +
+        '<div class="kpi-value">' + esc(value) + "</div>" +
+        (sub || trend ? '<div class="kpi-sub">' + esc(sub) + trendHtml + "</div>" : "");
+    }
+  }
+
+  /* ============================================================
+     os-status-badge
+     Attributes: variant (primary|success|warning|error|info|neutral), label
+     If no `label` attribute, uses the element's text content.
+     ============================================================ */
+  class OsStatusBadge extends HTMLElement {
+    connectedCallback() { this.render(); }
+    static get observedAttributes() { return ["variant", "label"]; }
+    attributeChangedCallback() { if (this._rendered) this.render(); }
+    render() {
+      this._rendered = true;
+      const variant = this.getAttribute("variant") || "neutral";
+      const label = this.getAttribute("label") || this.textContent.trim();
+      this.className = "badge badge-" + variant;
+      this.textContent = label;
+    }
+  }
+
+  /* ============================================================
+     os-card
+     Attributes: heading, action-label, action-href
+     Light-DOM children become the card body.
+     ============================================================ */
+  class OsCard extends HTMLElement {
+    connectedCallback() {
+      if (this._rendered) return;
+      this._rendered = true;
+      const heading = this.getAttribute("heading");
+      const actionLabel = this.getAttribute("action-label");
+      const actionHref = this.getAttribute("action-href") || "#";
+      const bodyContent = this.innerHTML;
+
+      this.classList.add("card");
+      this.innerHTML =
+        (heading
+          ? '<div class="card-header"><span class="card-title">' + esc(heading) + "</span>" +
+            (actionLabel ? '<a href="' + esc(actionHref) + '" class="card-action">' + esc(actionLabel) + "</a>" : "") +
+            "</div>"
+          : "") +
+        '<div class="card-body">' + bodyContent + "</div>";
+    }
+  }
+
+  /* ============================================================
+     os-data-table
+     Properties: columns [{key,label,type}], rows [{...}]
+       type: 'text' (default) | 'status' (expects row[key+'Variant']) | 'user' (expects row[key] = {name, initials, color})
+     Attributes: row-href-template ("ticket-detail.html?id={id}"), clickable, empty-text
+     ============================================================ */
+  class OsDataTable extends HTMLElement {
+    connectedCallback() {
+      if (!this._columns) this._columns = [];
+      if (!this._rows) this._rows = [];
+      this.render();
+    }
+    set columns(val) { this._columns = val || []; this.render(); }
+    get columns() { return this._columns || []; }
+    set rows(val) { this._rows = val || []; this.render(); }
+    get rows() { return this._rows || []; }
+
+    render() {
+      const cols = this._columns || [];
+      const rows = this._rows || [];
+      const template = this.getAttribute("row-href-template");
+      const clickable = this.hasAttribute("clickable") && !!template;
+      const emptyText = this.getAttribute("empty-text") || "No records to show.";
+
+      if (!cols.length) { this.innerHTML = ""; return; }
+
+      const thead = "<tr>" + cols.map((c) => "<th>" + esc(c.label) + "</th>").join("") + "</tr>";
+
+      let tbody;
+      if (!rows.length) {
+        tbody = '<tr><td colspan="' + cols.length + '" class="table-empty">' + esc(emptyText) + "</td></tr>";
+      } else {
+        tbody = rows
+          .map((row) => {
+            const href = template ? template.replace(/\{(\w+)\}/g, (_, k) => encodeURIComponent(row[k])) : null;
+            const cells = cols
+              .map((c) => {
+                const v = row[c.key];
+                if (c.type === "status") {
+                  const variant = row[c.key + "Variant"] || "neutral";
+                  return '<td><span class="badge badge-' + esc(variant) + '">' + esc(v) + "</span></td>";
+                }
+                if (c.type === "user") {
+                  const u = v || {};
+                  return (
+                    "<td><div class=\"user-cell\"><div class=\"avatar avatar-sm\" style=\"background:" + esc(u.color || "var(--color-primary)") + '">' +
+                    esc(u.initials || "") + "</div><span>" + esc(u.name || "") + "</span></div></td>"
+                  );
+                }
+                return "<td>" + esc(v) + "</td>";
+              })
+              .join("");
+            const rowAttrs = clickable ? ' class="clickable" data-href="' + esc(href) + '"' : "";
+            return "<tr" + rowAttrs + ">" + cells + "</tr>";
+          })
+          .join("");
+      }
+
+      this.innerHTML = '<table class="table"><thead>' + thead + "</thead><tbody>" + tbody + "</tbody></table>";
+
+      if (clickable) {
+        this.querySelectorAll("tr.clickable").forEach((tr) => {
+          tr.addEventListener("click", () => {
+            const href = tr.getAttribute("data-href");
+            if (href) window.location.href = href;
+          });
+        });
+      }
+    }
+  }
+
+  /* ============================================================
+     os-tabs
+     Each direct child is one panel:
+       <div data-tab="details" data-tab-label="Details" data-tab-badge="3">...</div>
+     Attribute: active (data-tab key of the panel to show first)
+     ============================================================ */
+  class OsTabs extends HTMLElement {
+    connectedCallback() {
+      if (this._rendered) return;
+      this._rendered = true;
+
+      const panels = Array.from(this.children);
+      const activeKey = this.getAttribute("active") || (panels[0] && panels[0].getAttribute("data-tab"));
+
+      const tabsBar = document.createElement("div");
+      tabsBar.className = "tabs-container";
+      const tabsInner = document.createElement("div");
+      tabsInner.className = "tabs";
+      tabsBar.appendChild(tabsInner);
+
+      panels.forEach((panel) => {
+        const key = panel.getAttribute("data-tab");
+        const label = panel.getAttribute("data-tab-label") || key;
+        const badge = panel.getAttribute("data-tab-badge");
+        const isActive = key === activeKey;
+
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "tab" + (isActive ? " active" : "");
+        btn.setAttribute("data-tab-target", key);
+        btn.innerHTML = esc(label) + (badge ? '<span class="tab-badge">' + esc(badge) + "</span>" : "");
+        btn.addEventListener("click", () => this.activate(key));
+        tabsInner.appendChild(btn);
+
+        panel.classList.add("tab-panel");
+        panel.classList.toggle("active", isActive);
+      });
+
+      this.prepend(tabsBar);
+    }
+
+    activate(key) {
+      this.querySelectorAll(".tab").forEach((t) => t.classList.toggle("active", t.getAttribute("data-tab-target") === key));
+      this.querySelectorAll(".tab-panel").forEach((p) => p.classList.toggle("active", p.getAttribute("data-tab") === key));
+      this.dispatchEvent(new CustomEvent("os-tab-change", { detail: { tab: key }, bubbles: true }));
+    }
+  }
+
+  /* ============================================================
+     os-status-timeline
+     Property: items [{title, user, date, state: complete|current|pending, initials, color, note}]
+     ============================================================ */
+  class OsStatusTimeline extends HTMLElement {
+    connectedCallback() { if (!this._items) this._items = []; this.render(); }
+    set items(val) { this._items = val || []; this.render(); }
+    get items() { return this._items || []; }
+    render() {
+      const items = this._items || [];
+      this.classList.add("timeline");
+      this.innerHTML = items
+        .map((item, i) => {
+          const state = item.state || "pending";
+          const iconHtml = state === "complete" ? icon("check", 14) : state === "current" ? String(i + 1) : String(i + 1);
+          return (
+            '<div class="timeline-item">' +
+            '<div class="timeline-icon ' + state + '">' + iconHtml + "</div>" +
+            '<div class="timeline-content">' +
+            '<div class="timeline-title">' + esc(item.title) + "</div>" +
+            (item.user
+              ? '<div class="timeline-user"><div class="avatar avatar-sm" style="background:' + esc(item.color || "var(--color-primary)") + '">' +
+                esc(item.initials || "") + '</div><span class="timeline-user-name">' + esc(item.user) + "</span></div>"
+              : "") +
+            '<div class="timeline-date">' + esc(item.date) + "</div>" +
+            (item.note ? '<div class="timeline-note">' + esc(item.note) + "</div>" : "") +
+            "</div></div>"
+          );
+        })
+        .join("");
+    }
+  }
+
+  /* ============================================================
+     os-ai-sidebar
+     Attributes: heading (default "AI Assistant") — note: not `title`,
+                 which would collide with the native HTML tooltip attribute.
+     Properties: insight (string), recommendations [{title, description}], activityLog [{text, time}]
+     Methods: open(), close(), toggle()
+     ============================================================ */
+  class OsAiSidebar extends HTMLElement {
+    connectedCallback() {
+      if (!this._recommendations) this._recommendations = [];
+      if (!this._activityLog) this._activityLog = [];
+      this.render();
+    }
+    set insight(val) { this._insight = val; this.render(); }
+    get insight() { return this._insight || ""; }
+    set recommendations(val) { this._recommendations = val || []; this.render(); }
+    get recommendations() { return this._recommendations || []; }
+    set activityLog(val) { this._activityLog = val || []; this.render(); }
+    get activityLog() { return this._activityLog || []; }
+
+    render() {
+      const heading = this.getAttribute("heading") || "AI Assistant";
+      const recs = this._recommendations || [];
+      const activity = this._activityLog || [];
+
+      this.classList.add("ai-sidebar");
+      this.innerHTML =
+        '<div class="ai-sidebar-header">' +
+        '<div class="ai-sidebar-title">' + icon("sparkles", 20) + "<span>" + esc(heading) + "</span></div>" +
+        '<button class="ai-close-btn" data-action="close">' + icon("x", 16) + "</button>" +
+        "</div>" +
+        '<div class="ai-sidebar-body">' +
+        '<div class="ai-status"><span class="ai-status-dot"></span><span>Online &middot; Analyzing context</span></div>' +
+        (this._insight
+          ? '<div class="ai-insight"><div class="ai-insight-header">' + icon("alert-circle", 16) + "<span>AI Recommendation</span></div>" +
+            '<div class="ai-insight-text">' + esc(this._insight) + "</div></div>"
+          : "") +
+        (recs.length
+          ? '<div class="ai-recommendations"><div class="ai-recommendations-title">Suggested Actions</div>' +
+            recs
+              .map(
+                (r) =>
+                  '<div class="ai-recommendation"><div class="ai-recommendation-title">' + esc(r.title) + "</div>" +
+                  '<div class="ai-recommendation-desc">' + esc(r.description) + "</div></div>"
+              )
+              .join("") +
+            "</div>"
+          : "") +
+        (activity.length
+          ? '<div class="ai-activity"><div class="ai-activity-title">Agent Activity</div>' +
+            activity
+              .map(
+                (a) =>
+                  '<div class="ai-activity-item"><div class="ai-activity-check">' + icon("check", 12) + "</div><div>" +
+                  '<div class="ai-activity-text">' + esc(a.text) + "</div>" +
+                  '<div class="ai-activity-time">' + esc(a.time) + "</div>" +
+                  "</div></div>"
+              )
+              .join("") +
+            "</div>"
+          : "") +
+        "</div>" +
+        '<div class="ai-sidebar-footer"><div class="ai-input-wrapper">' +
+        '<input type="text" class="ai-input" placeholder="Ask a question...">' +
+        '<button class="ai-send-btn" data-action="send">' + icon("send", 18) + "</button>" +
+        "</div></div>";
+
+      this.querySelector('[data-action="close"]').addEventListener("click", () => this.close());
+      this.querySelector('[data-action="send"]').addEventListener("click", () => this._demoSend());
+      this.querySelector(".ai-input").addEventListener("keydown", (e) => { if (e.key === "Enter") this._demoSend(); });
+    }
+
+    _demoSend() {
+      // Demo-only: this kit has no live AI backend wired up. Wire this to
+      // a real endpoint in your POC if the client wants a working chat.
+      const input = this.querySelector(".ai-input");
+      if (!input.value.trim()) return;
+      const list = this._activityLog || [];
+      list.push({ text: 'Noted: "' + input.value.trim() + '"', time: "Just now" });
+      this._activityLog = list;
+      input.value = "";
+      this.render();
+    }
+
+    open() { this.classList.add("open"); }
+    close() { this.classList.remove("open"); }
+    toggle() { this.classList.toggle("open"); }
+  }
+
+  /* ============================================================
+     os-modal
+     Attributes: modal-title, confirm-label, cancel-label, variant (default|error)
+     Light-DOM children (captured at connect) become the modal body.
+     Methods: open(), close()
+     Events: os-modal-confirm, os-modal-cancel (fired on the element)
+     ============================================================ */
+  class OsModal extends HTMLElement {
+    connectedCallback() {
+      if (this._rendered) return;
+      this._rendered = true;
+
+      const title = this.getAttribute("modal-title") || "Confirm";
+      const confirmLabel = this.getAttribute("confirm-label") || "Confirm";
+      const cancelLabel = this.getAttribute("cancel-label") || "Cancel";
+      const variant = this.getAttribute("variant") || "default";
+      const bodyContent = this.innerHTML;
+
+      this.classList.add("modal-overlay");
+      this.innerHTML =
+        '<div class="modal">' +
+        '<div class="modal-header"><span class="modal-title">' + esc(title) + '</span>' +
+        '<button class="modal-close" data-action="close">' + icon("x", 16) + "</button></div>" +
+        '<div class="modal-body">' + bodyContent + "</div>" +
+        '<div class="modal-footer">' +
+        '<button class="btn btn-secondary" data-action="cancel">' + esc(cancelLabel) + "</button>" +
+        '<button class="btn ' + (variant === "error" ? "btn-error" : "btn-primary") + '" data-action="confirm">' + esc(confirmLabel) + "</button>" +
+        "</div></div>";
+
+      this.querySelector('[data-action="close"]').addEventListener("click", () => this.close());
+      this.querySelector('[data-action="cancel"]').addEventListener("click", () => {
+        this.dispatchEvent(new CustomEvent("os-modal-cancel"));
+        this.close();
+      });
+      this.querySelector('[data-action="confirm"]').addEventListener("click", () => {
+        this.dispatchEvent(new CustomEvent("os-modal-confirm"));
+        this.close();
+      });
+      this.addEventListener("click", (e) => { if (e.target === this) this.close(); });
+    }
+    open() { this.classList.add("active"); }
+    close() { this.classList.remove("active"); }
+  }
+
+  /* ============================================================
+     os-wizard-stepper
+     Each direct child is one step's content:
+       <div data-step-label="Category">...fields...</div>
+     Attribute: submit-label (button label on the final step, default "Submit")
+     Methods: next(), prev(), goTo(i)
+     Events: os-wizard-change {index}, os-wizard-submit
+     ============================================================ */
+  class OsWizardStepper extends HTMLElement {
+    connectedCallback() {
+      if (this._rendered) return;
+      this._rendered = true;
+      this._steps = Array.from(this.children);
+      this._current = 0;
+      this._submitLabel = this.getAttribute("submit-label") || "Submit";
+      this._buildShell();
+      this._renderStep();
+    }
+
+    _buildShell() {
+      const stepsRow = document.createElement("div");
+      stepsRow.className = "wizard-steps";
+      this._stepsRow = stepsRow;
+
+      const content = document.createElement("div");
+      content.className = "wizard-content";
+      this._steps.forEach((s) => content.appendChild(s));
+      this._contentEl = content;
+
+      const actions = document.createElement("div");
+      actions.className = "wizard-actions";
+      actions.innerHTML =
+        '<button type="button" class="btn btn-secondary" data-action="prev">' + icon("chevron-left", 16) + "Previous</button>" +
+        '<button type="button" class="btn btn-primary" data-action="next">Next Step' + icon("chevron-right", 16) + "</button>";
+      this._actionsEl = actions;
+
+      this.innerHTML = "";
+      this.appendChild(stepsRow);
+      this.appendChild(content);
+      this.appendChild(actions);
+
+      actions.querySelector('[data-action="prev"]').addEventListener("click", () => this.prev());
+      actions.querySelector('[data-action="next"]').addEventListener("click", () => this._onNext());
+    }
+
+    _renderStep() {
+      const total = this._steps.length;
+      this._stepsRow.innerHTML = this._steps
+        .map((s, i) => {
+          const state = i < this._current ? "complete" : i === this._current ? "current" : "upcoming";
+          const circle = state === "complete" ? icon("check", 16) : String(i + 1);
+          return (
+            '<div class="wizard-step ' + state + '">' +
+            '<div class="wizard-step-circle">' + circle + "</div>" +
+            '<div class="wizard-step-label">' + esc(s.getAttribute("data-step-label")) + "</div>" +
+            "</div>"
+          );
+        })
+        .join("");
+
+      this._steps.forEach((s, i) => { s.style.display = i === this._current ? "block" : "none"; });
+
+      const prevBtn = this._actionsEl.querySelector('[data-action="prev"]');
+      const nextBtn = this._actionsEl.querySelector('[data-action="next"]');
+      prevBtn.disabled = this._current === 0;
+      const isLast = this._current === total - 1;
+      nextBtn.innerHTML = isLast ? esc(this._submitLabel) + icon("check", 16) : "Next Step" + icon("chevron-right", 16);
+
+      this.dispatchEvent(new CustomEvent("os-wizard-change", { detail: { index: this._current } }));
+    }
+
+    _onNext() {
+      // Optional validation gate: set `wizardEl.beforeNext = (stepIndex) => boolean`
+      // from the page. Return false to block advancing (e.g. required-field
+      // validation) — the wizard stays on the current step.
+      if (typeof this.beforeNext === "function" && this.beforeNext(this._current) === false) return;
+
+      if (this._current === this._steps.length - 1) {
+        this.dispatchEvent(new CustomEvent("os-wizard-submit"));
+        return;
+      }
+      this.next();
+    }
+
+    next() { if (this._current < this._steps.length - 1) { this._current++; this._renderStep(); } }
+    prev() { if (this._current > 0) { this._current--; this._renderStep(); } }
+    goTo(i) { if (i >= 0 && i < this._steps.length) { this._current = i; this._renderStep(); } }
+    get currentIndex() { return this._current; }
+  }
+
+  /* ============================================================
+     os-form-field
+     Attributes: label, required, hint, error, success
+     Wraps a single light-DOM input/select/textarea child.
+     Re-render-safe: the control node is captured once and reused.
+     ============================================================ */
+  class OsFormField extends HTMLElement {
+    connectedCallback() {
+      if (!this._control) {
+        this._control = this.querySelector("input, select, textarea");
+      }
+      this.render();
+    }
+    static get observedAttributes() { return ["label", "required", "hint", "error", "success"]; }
+    attributeChangedCallback() { if (this._control) this.render(); }
+
+    render() {
+      const label = this.getAttribute("label");
+      const required = this.hasAttribute("required");
+      const hint = this.getAttribute("hint");
+      const error = this.getAttribute("error");
+      const success = this.getAttribute("success");
+      const control = this._control;
+
+      if (control) {
+        control.classList.remove("error", "success");
+        if (error) control.classList.add("error");
+        else if (success) control.classList.add("success");
+        if (!control.classList.contains("form-control")) control.classList.add("form-control");
+      }
+
+      this.classList.add("form-group");
+      this.innerHTML =
+        (label ? '<label class="form-label">' + esc(label) + (required ? '<span class="required">*</span>' : "") + "</label>" : "") +
+        '<div class="os-form-field-control"></div>' +
+        (error
+          ? '<span class="form-error">' + icon("alert-circle", 12) + esc(error) + "</span>"
+          : success
+          ? '<span class="form-success">' + icon("check", 12) + esc(success) + "</span>"
+          : hint
+          ? '<span class="form-hint">' + esc(hint) + "</span>"
+          : "");
+
+      if (control) this.querySelector(".os-form-field-control").appendChild(control);
+    }
+  }
+
+  /* ============================================================
+     os-search-filter-bar
+     Attributes: placeholder
+     Any light-DOM children (e.g. a <select>) render alongside the search box.
+     Event: os-search {value} fired on input.
+     ============================================================ */
+  class OsSearchFilterBar extends HTMLElement {
+    connectedCallback() {
+      if (this._rendered) return;
+      this._rendered = true;
+      const placeholder = this.getAttribute("placeholder") || "Search...";
+      const extraContent = this.innerHTML;
+
+      this.classList.add("filter-bar");
+      this.innerHTML =
+        '<div class="search-input"><span class="search-icon">' + icon("search", 18) + "</span>" +
+        '<input type="text" class="form-control" placeholder="' + esc(placeholder) + '"></div>' +
+        (extraContent ? '<div class="filter-bar-extra">' + extraContent + "</div>" : "");
+
+      this.querySelector("input").addEventListener("input", (e) => {
+        this.dispatchEvent(new CustomEvent("os-search", { detail: { value: e.target.value }, bubbles: true }));
+      });
+    }
+  }
+
+  /* ============================================================
+     os-empty-state
+     Attributes: icon, heading, text, action-label, action-href
+     ============================================================ */
+  class OsEmptyState extends HTMLElement {
+    connectedCallback() {
+      if (this._rendered) return;
+      this._rendered = true;
+      const iconName = this.getAttribute("icon") || "inbox";
+      const heading = this.getAttribute("heading") || "Nothing here yet";
+      const text = this.getAttribute("text") || "";
+      const actionLabel = this.getAttribute("action-label");
+      const actionHref = this.getAttribute("action-href") || "#";
+
+      this.classList.add("empty-state");
+      this.innerHTML =
+        '<div class="empty-state-icon">' + icon(iconName, 36) + "</div>" +
+        '<div class="empty-state-title">' + esc(heading) + "</div>" +
+        (text ? '<div class="empty-state-text">' + esc(text) + "</div>" : "") +
+        (actionLabel ? '<a href="' + esc(actionHref) + '" class="btn btn-primary">' + esc(actionLabel) + "</a>" : "");
+    }
+  }
+
+  /* ============================================================
+     os-chart-donut
+     Property: data [{label, value, color}]
+     Attributes: center-label, center-sub, size (default 160)
+     ============================================================ */
+  class OsChartDonut extends HTMLElement {
+    connectedCallback() { if (!this._data) this._data = []; this.render(); }
+    set data(val) { this._data = val || []; this.render(); }
+    get data() { return this._data || []; }
+
+    render() {
+      const data = this._data || [];
+      const size = parseInt(this.getAttribute("size") || "160", 10);
+      const strokeWidth = Math.round(size * 0.16);
+      const radius = (size - strokeWidth) / 2;
+      const circumference = 2 * Math.PI * radius;
+      const total = data.reduce((sum, d) => sum + d.value, 0) || 1;
+
+      let offset = 0;
+      const segments = data
+        .map((d) => {
+          const fraction = d.value / total;
+          const length = fraction * circumference;
+          const dasharray = length + " " + (circumference - length);
+          const circle =
+            '<circle cx="' + size / 2 + '" cy="' + size / 2 + '" r="' + radius + '" fill="none" stroke="' + esc(d.color) + '" ' +
+            'stroke-width="' + strokeWidth + '" stroke-dasharray="' + dasharray + '" stroke-dashoffset="' + -offset + '"></circle>';
+          offset += length;
+          return circle;
+        })
+        .join("");
+
+      const centerLabel = this.getAttribute("center-label") || "";
+      const centerSub = this.getAttribute("center-sub") || "";
+
+      this.innerHTML =
+        '<div class="chart-donut-wrapper">' +
+        '<div style="position:relative;width:' + size + "px;height:" + size + 'px;">' +
+        '<svg class="chart-donut-svg" width="' + size + '" height="' + size + '">' + segments + "</svg>" +
+        (centerLabel
+          ? '<div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;">' +
+            '<span class="chart-donut-center-label">' + esc(centerLabel) + "</span>" +
+            (centerSub ? '<span class="chart-donut-center-sub">' + esc(centerSub) + "</span>" : "") +
+            "</div>"
+          : "") +
+        "</div>" +
+        '<div class="chart-donut-legend">' +
+        data
+          .map(
+            (d) =>
+              '<div class="chart-donut-legend-item"><span class="chart-donut-legend-dot" style="background:' + esc(d.color) + '"></span>' +
+              esc(d.label) + " &middot; " + esc(d.value) +
+              "</div>"
+          )
+          .join("") +
+        "</div>" +
+        "</div>";
+    }
+  }
+
+  /* ---------------------------------------------------------- */
+  customElements.define("os-sidebar-nav", OsSidebarNav);
+  customElements.define("os-kpi-card", OsKpiCard);
+  customElements.define("os-status-badge", OsStatusBadge);
+  customElements.define("os-card", OsCard);
+  customElements.define("os-data-table", OsDataTable);
+  customElements.define("os-tabs", OsTabs);
+  customElements.define("os-status-timeline", OsStatusTimeline);
+  customElements.define("os-ai-sidebar", OsAiSidebar);
+  customElements.define("os-modal", OsModal);
+  customElements.define("os-wizard-stepper", OsWizardStepper);
+  customElements.define("os-form-field", OsFormField);
+  customElements.define("os-search-filter-bar", OsSearchFilterBar);
+  customElements.define("os-empty-state", OsEmptyState);
+  customElements.define("os-chart-donut", OsChartDonut);
+
+  // Expose the icon helper so page-level scripts can reuse the same set
+  // (e.g. for a header button icon) without duplicating SVG markup.
+  window.osIcon = icon;
+})();

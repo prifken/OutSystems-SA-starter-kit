@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>New Ticket | OS Ticketing</title>
+<!--
+  Screen 3 of the reference example: new ticket wizard.
+  Demonstrates os-wizard-stepper + os-form-field, including a simple
+  required-field validation gate using the wizard's `beforeNext` hook.
+-->
+<link rel="stylesheet" href="../../components/tokens.css">
+</head>
+<body>
+  <div class="layout">
+
+    <os-sidebar-nav active="tickets" logo="../../components/os_logo_reversed.png" brand="OutSystems" wordmark="true" logo-on-dark="true" home-href="dashboard.html">
+      <a href="dashboard.html" data-nav="dashboard" data-icon="grid">Dashboard</a>
+      <a href="dashboard.html" data-nav="tickets" data-icon="ticket">Tickets</a>
+      <a href="#" data-nav="reports" data-icon="bar-chart">Reports</a>
+      <a href="#" data-nav="settings" data-icon="settings">Settings</a>
+    </os-sidebar-nav>
+
+    <main class="main-content">
+      <header class="header">
+        <div class="header-left">
+          <div>
+            <h1 class="header-title">New Ticket</h1>
+            <p class="header-subtitle">Submit a new support request</p>
+          </div>
+        </div>
+        <div class="header-actions">
+          <a href="dashboard.html" class="btn btn-secondary">Cancel</a>
+        </div>
+      </header>
+
+      <div class="page">
+        <os-card>
+          <os-wizard-stepper id="ticketWizard" submit-label="Create Ticket">
+
+            <!-- Step 1: Category -->
+            <div data-step-label="Category">
+              <h3 class="mb-base">What type of issue is this?</h3>
+              <div class="form-row">
+                <os-form-field id="categoryField" label="Category" required>
+                  <select id="categorySelect">
+                    <option value="">Select a category...</option>
+                    <option value="Network & VPN">Network &amp; VPN</option>
+                    <option value="Hardware">Hardware</option>
+                    <option value="Access Request">Access Request</option>
+                    <option value="Software">Software</option>
+                    <option value="Onboarding">Onboarding</option>
+                  </select>
+                </os-form-field>
+                <os-form-field id="priorityField" label="Priority" required hint="How urgently does this need attention?">
+                  <select id="prioritySelect">
+                    <option value="">Select a priority...</option>
+                    <option value="Low">Low</option>
+                    <option value="Medium">Medium</option>
+                    <option value="High">High</option>
+                    <option value="Critical">Critical</option>
+                  </select>
+                </os-form-field>
+              </div>
+            </div>
+
+            <!-- Step 2: Details -->
+            <div data-step-label="Details">
+              <h3 class="mb-base">Tell us what's going on</h3>
+              <os-form-field id="subjectField" label="Subject" required hint="A short, specific summary — this becomes the ticket title.">
+                <input type="text" id="subjectInput" placeholder="e.g. VPN disconnects every 10 minutes">
+              </os-form-field>
+              <os-form-field id="descriptionField" label="Description" required>
+                <textarea id="descriptionInput" placeholder="Steps to reproduce, error messages, when it started..."></textarea>
+              </os-form-field>
+              <div class="form-group">
+                <span class="form-label">Attachments</span>
+                <div class="file-upload">
+                  <div class="file-upload-icon" id="uploadIcon"></div>
+                  <div class="file-upload-text"><strong>Click to upload</strong> or drag and drop</div>
+                  <div class="file-upload-hint">Screenshots, logs — up to 10MB</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Step 3: Review -->
+            <div data-step-label="Review">
+              <h3 class="mb-base">Review before submitting</h3>
+              <div class="form-row">
+                <div class="form-group">
+                  <span class="form-label">Category</span>
+                  <span class="form-value emphasis" id="reviewCategory">&mdash;</span>
+                </div>
+                <div class="form-group">
+                  <span class="form-label">Priority</span>
+                  <span class="form-value emphasis" id="reviewPriority">&mdash;</span>
+                </div>
+              </div>
+              <div class="form-group">
+                <span class="form-label">Subject</span>
+                <span class="form-value" id="reviewSubject">&mdash;</span>
+              </div>
+              <div class="form-group">
+                <span class="form-label">Description</span>
+                <span class="form-value" id="reviewDescription">&mdash;</span>
+              </div>
+              <div class="alert alert-info">
+                <div class="alert-icon" id="reviewAlertIcon"></div>
+                <div class="alert-content">
+                  <div class="alert-title">What happens next</div>
+                  <div class="alert-text">Your ticket will be routed to the right team and you'll get an email confirmation with a tracking link.</div>
+                </div>
+              </div>
+            </div>
+
+          </os-wizard-stepper>
+        </os-card>
+      </div>
+    </main>
+  </div>
+
+  <!-- Loaded at the end of body — see the comment in dashboard.html for why. -->
+  <script src="../../components/os-components.js"></script>
+  <script>
+    // Small icons rendered via the shared icon helper exposed by os-components.js
+    document.getElementById("uploadIcon").innerHTML = window.osIcon("upload", 24);
+    document.getElementById("reviewAlertIcon").innerHTML = window.osIcon("check", 20);
+
+    const wizard = document.getElementById("ticketWizard");
+    const categorySelect = document.getElementById("categorySelect");
+    const prioritySelect = document.getElementById("prioritySelect");
+    const subjectInput = document.getElementById("subjectInput");
+    const descriptionInput = document.getElementById("descriptionInput");
+
+    function validateCategoryStep() {
+      let valid = true;
+      const categoryField = document.getElementById("categoryField");
+      const priorityField = document.getElementById("priorityField");
+
+      if (!categorySelect.value) { categoryField.setAttribute("error", "Please select a category."); valid = false; }
+      else categoryField.removeAttribute("error");
+
+      if (!prioritySelect.value) { priorityField.setAttribute("error", "Please select a priority."); valid = false; }
+      else priorityField.removeAttribute("error");
+
+      return valid;
+    }
+
+    function validateDetailsStep() {
+      let valid = true;
+      const subjectField = document.getElementById("subjectField");
+      const descriptionField = document.getElementById("descriptionField");
+
+      if (subjectInput.value.trim().length < 5) { subjectField.setAttribute("error", "Subject must be at least 5 characters."); valid = false; }
+      else subjectField.removeAttribute("error");
+
+      if (!descriptionInput.value.trim()) { descriptionField.setAttribute("error", "Please describe the issue."); valid = false; }
+      else descriptionField.removeAttribute("error");
+
+      return valid;
+    }
+
+    // Validation gate — see the `beforeNext` hook in os-wizard-stepper.
+    // Return false to keep the wizard on the current step.
+    wizard.beforeNext = function (stepIndex) {
+      if (stepIndex === 0) return validateCategoryStep();
+      if (stepIndex === 1) return validateDetailsStep();
+      return true;
+    };
+
+    wizard.addEventListener("os-wizard-change", (e) => {
+      if (e.detail.index === 2) {
+        document.getElementById("reviewCategory").textContent = categorySelect.value || "—";
+        document.getElementById("reviewPriority").textContent = prioritySelect.value || "—";
+        document.getElementById("reviewSubject").textContent = subjectInput.value || "—";
+        document.getElementById("reviewDescription").textContent = descriptionInput.value || "—";
+      }
+    });
+
+    wizard.addEventListener("os-wizard-submit", () => {
+      // Demo-only: no backend, so we just simulate a create call and
+      // return to the dashboard. Wire this to your ODC REST API in a
+      // real POC — see patterns/odc-api-wiring/ in the SA toolkit.
+      window.location.href = "dashboard.html";
+    });
+  </script>
+</body>
+</html>
