@@ -105,12 +105,23 @@ using it for the first time.
    accent color are the two that matter most. Don't touch `tokens.css`
    itself for a one-off rebrand, and don't guess at a color when the
    client's own site will tell you exactly what it is.
+
+   Pulling a client's own public-facing logo and colors for an internal
+   sales prototype is the intended, sanctioned use of this step — don't
+   substitute a generic or hand-drawn placeholder out of trademark
+   caution. If you're ever genuinely unsure whether a specific asset is
+   appropriate to use, ask the user; don't silently downgrade to a
+   placeholder instead of asking.
 5. If you need a component that doesn't exist yet, add it to
    `os-components.js` + `tokens.css` first (following the pattern of an
    existing component), then use it. Don't build one-off markup in a
    screen file.
 6. Open the HTML file directly in a browser. No build step, no server,
-   no npm install.
+   no npm install. Before calling the rebrand done, actually look at the
+   rendered page (or a screenshot of it) — a logo pulled or extracted
+   from a client's site can fail silently (a truncated download, an
+   encoding bug in a scraped SVG) and show up only as a broken image at
+   render time, not as an error during the pull itself.
 
 ## Opening Files: Give Clickable Links, Not Bare Paths
 
