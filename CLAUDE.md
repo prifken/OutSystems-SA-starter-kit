@@ -164,6 +164,32 @@ it's OutSystems' own known dark-ink asset, so `.powered-by img` applies
 `filter: brightness(0) invert(1)` (tokens.css) to recolor it on the fly
 rather than needing a per-logo decision — that one's safe to leave alone.
 
+## Field Feedback Loop
+
+SAs in the field don't file PRs against this repo directly — they hit
+something while building a real client prototype (a missing component, a
+confusing default, a rule that doesn't hold up) and need a low-friction way
+to flag it without becoming a contributor to this codebase. The mechanism:
+
+1. **SA files a GitHub issue** using the "Field Feedback" template (three
+   buckets: what's working, what's not, or a suggested improvement — plus
+   which client/POC surfaced it). No code, no PR, no git knowledge required.
+2. **Maintainer triages the issue.** Not everything becomes a change — some
+   feedback is client-specific and doesn't generalize, some is a duplicate
+   of a known gap. Valid, generalizable feedback gets turned into an actual
+   fix.
+3. **The fix lands as a PR** the same way every other change in this repo
+   does — at the library level (`components/`) or the process level
+   (`CLAUDE.md`), never as a patch buried inside one client's POC folder.
+   This is the same pattern that already produced two real fixes: the
+   Ford POC surfacing two component bugs, and a Deca Dental Group POC
+   surfacing the "pull real brand colors from the client's site" step
+   above.
+
+The POC folder itself is never the deliverable back to the team (see
+`.gitignore` — `pocs/` isn't tracked). The issue, and the PR it produces,
+is what the team actually reviews and benefits from.
+
 ## What This Kit Deliberately Does Not Have
 
 - No ODC Studio / Mentor / OML generation — pure HTML/CSS/JS prototypes only

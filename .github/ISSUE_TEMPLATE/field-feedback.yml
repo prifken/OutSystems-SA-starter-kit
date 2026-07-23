@@ -1,0 +1,56 @@
+name: Field Feedback
+description: Report what's working, what's not, or suggest an improvement to the starter kit — based on a real client prototype you built.
+title: "[Feedback]: "
+labels: ["field-feedback"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        This kit improves the same way the Deca Dental and Ford POCs already did: something surfaces
+        while you're building a real prototype, it gets triaged here, and — if it's a real gap — the
+        fix lands in `components/` or `CLAUDE.md` for everyone, not just patched in your own copy.
+        You don't need to write any code or open a PR yourself — just describe what happened.
+
+  - type: dropdown
+    id: feedback-type
+    attributes:
+      label: What kind of feedback is this?
+      options:
+        - What's working well (keep doing this)
+        - What's not working (a bug, gap, or friction point)
+        - Suggested improvement (a new component, doc change, or workflow tweak)
+    validations:
+      required: true
+
+  - type: input
+    id: poc-context
+    attributes:
+      label: Which prototype/client surfaced this?
+      description: e.g. "Deca Dental Group pre-auth POC" — even a rough client/industry name helps future SAs recognize a similar situation.
+      placeholder: Client or POC name
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened?
+      description: Be as specific as you can — what you were trying to do, what you expected, and what actually happened. Screenshots welcome (drag and drop into this box).
+    validations:
+      required: true
+
+  - type: textarea
+    id: component
+    attributes:
+      label: Which part of the kit does this affect, if you know?
+      description: e.g. "os-sidebar-nav", "the logo placement rules in CLAUDE.md", "os-data-table sorting" — leave blank if you're not sure, that's fine.
+    validations:
+      required: false
+
+  - type: textarea
+    id: suggested-fix
+    attributes:
+      label: Suggested fix or improvement (optional)
+      description: If you already have an idea of what would fix this, describe it here. No need to write code.
+    validations:
+      required: false
