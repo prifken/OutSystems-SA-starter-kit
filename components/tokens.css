@@ -259,6 +259,15 @@ os-status-badge { display: inline-flex; }
 
 .nav-item svg { width: 20px; height: 20px; opacity: 0.8; flex-shrink: 0; }
 
+.nav-item.disabled {
+  color: var(--color-neutral-6);
+  opacity: 0.4;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.nav-item.disabled:hover { background: none; }
+
 .nav-badge {
   margin-left: auto;
   background: var(--color-error);
