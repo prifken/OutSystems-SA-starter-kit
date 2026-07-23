@@ -57,7 +57,7 @@ every piece of it.
 
 | Element | Purpose | Config |
 |---|---|---|
-| `<os-sidebar-nav>` | Fixed left nav, dark theme | attrs: `active`, `logo`, `brand`, `show-brand-label`, `logo-chip`, `powered-by-logo`, `home-href`; children: `<a data-nav data-icon>` |
+| `<os-sidebar-nav>` | Fixed left nav, dark theme | attrs: `active`, `logo`, `brand`, `show-brand-label`, `logo-chip`, `powered-by-logo`, `home-href`; children: `<a data-nav data-icon data-disabled>` — set `data-disabled="true"` on any nav item that doesn't lead to a real screen in this prototype, so it renders grayed out and inert instead of a clickable dead link |
 | `<os-kpi-card>` | Metric tile with optional trend | attrs: `label`, `value`, `variant`, `sub`, `trend`, `trend-value` |
 | `<os-status-badge>` | Color-coded pill | attrs: `variant` (primary/success/warning/error/info/neutral), `label` |
 | `<os-card>` | Container with optional header + action link | attrs: `heading`, `action-label`, `action-href`; children become the body |

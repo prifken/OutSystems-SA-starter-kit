@@ -124,6 +124,14 @@
          <a href="dashboard.html" data-nav="dashboard" data-icon="grid">Dashboard</a>
          <a href="tickets.html"   data-nav="tickets"   data-icon="ticket">Tickets</a>
        </os-sidebar-nav>
+
+     Nav items that don't lead anywhere yet (a screen you haven't built
+     for this prototype) should be grayed out, not left as live dead
+     links — set data-disabled="true" on that <a>. It renders inert
+     (no click, no hover, 40% opacity) with a "Not available in this
+     prototype" tooltip, so a viewer can see the full intended nav
+     structure without clicking into nothing:
+         <a href="#" data-nav="reports" data-icon="bar-chart" data-disabled="true">Reports</a>
      ============================================================ */
   class OsSidebarNav extends HTMLElement {
     connectedCallback() {
@@ -149,8 +157,12 @@
           const iconName = a.getAttribute("data-icon") || "inbox";
           const badge = a.getAttribute("data-badge");
           const isActive = key === active;
+          const isDisabled = a.getAttribute("data-disabled") === "true";
+          const href = isDisabled ? "#" : esc(a.getAttribute("href") || "#");
+          const classes = "nav-item" + (isActive ? " active" : "") + (isDisabled ? " disabled" : "");
+          const extraAttrs = isDisabled ? ' aria-disabled="true" title="Not available in this prototype"' : "";
           return (
-            '<a href="' + esc(a.getAttribute("href") || "#") + '" class="nav-item' + (isActive ? " active" : "") + '" data-nav="' + esc(key) + '">' +
+            '<a href="' + href + '" class="' + classes + '" data-nav="' + esc(key) + '"' + extraAttrs + ">" +
             icon(iconName, 20) +
             "<span>" + esc(a.textContent.trim()) + "</span>" +
             (badge ? '<span class="nav-badge">' + esc(badge) + "</span>" : "") +
