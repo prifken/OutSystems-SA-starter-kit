@@ -1,4 +1,4 @@
-# Rifken Method Starter Kit
+# SA Starter Kit
 
 A minimal, self-contained component library for OutSystems Solutions
 Architects to build customer-facing HTML prototypes fast during early

@@ -1,4 +1,4 @@
-# Rifken Method Starter Kit
+# SA Starter Kit
 
 A minimal, self-contained component library for building customer-facing
 HTML prototypes fast — during early (0%→10%) sales conversations, when
