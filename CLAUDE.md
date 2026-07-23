@@ -96,6 +96,22 @@ using it for the first time.
 6. Open the HTML file directly in a browser. No build step, no server,
    no npm install.
 
+## Opening Files: Give Clickable Links, Not Bare Paths
+
+When telling a user which HTML file to open (an example, a new prototype
+screen, etc.), give a full `file:///` URI with forward slashes, built
+dynamically from the repo's actual absolute path on disk — e.g.
+`file:///C:/Users/you/path/to/repo/examples/os-ticketing/dashboard.html` —
+rather than a bare relative path (`examples/os-ticketing/dashboard.html`)
+or a raw OS-native path with backslashes (`C:\Users\...`). Most terminals
+only auto-detect `file://` URIs with forward slashes as clickable
+hyperlinks, so that's what gets a user to "one click, browser opens" —
+the goal for this kit, since speed is the entire point. Do not hardcode
+this into README.md, CLAUDE.md, or any other file committed to the repo —
+the absolute path is specific to wherever a given person cloned or
+downloaded it, so building it dynamically per-session is required for it
+to work for anyone else.
+
 ## Script Placement — Read This Before Moving Anything
 
 `os-components.js` is loaded at the **end of `<body>`**, not in `<head>`.
