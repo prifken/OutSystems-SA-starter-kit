@@ -86,9 +86,25 @@ using it for the first time.
    (adjust the relative path if your new folder is nested differently).
 3. Swap the sidebar nav items, KPI labels, table columns/rows, and copy —
    leave the component tags alone.
-4. If the client needs different brand colors, add a `<style>` block after
-   the `tokens.css` link that overrides the relevant `--color-*` custom
-   properties. Don't touch `tokens.css` itself for a one-off rebrand.
+4. Rebrand for the client — do this in parallel with step 1-3, not as an
+   afterthought. Find the client's real website and pull two things from
+   it, not just one:
+   - **Logo** — download the actual logo asset (see "Logo Placement"
+     below for the direct-placement vs. chip decision).
+   - **Brand colors** — look at the actual color values the site uses
+     for its header/nav and primary action color, not just what the
+     logo alone looks like. A logo rendered on a white page tells you
+     nothing about what background it was designed to sit on. Pull the
+     real hex values out of the site's CSS (view page source / inspect
+     the stylesheet — most site builders expose them as CSS custom
+     properties) rather than eyeballing a screenshot.
+   Put the result in a small `brand.css` file in the prototype's folder
+   (or a `<style>` block after the `tokens.css` link) that overrides the
+   relevant `--color-*` custom properties — `--color-neutral-10` for the
+   sidebar background, `--color-primary`/`--color-primary-hover` for the
+   accent color are the two that matter most. Don't touch `tokens.css`
+   itself for a one-off rebrand, and don't guess at a color when the
+   client's own site will tell you exactly what it is.
 5. If you need a component that doesn't exist yet, add it to
    `os-components.js` + `tokens.css` first (following the pattern of an
    existing component), then use it. Don't build one-off markup in a
