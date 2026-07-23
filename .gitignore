@@ -1,3 +1,10 @@
 node_modules/
 _verify-output/
 .DS_Store
+.firecrawl/
+
+# Client POC folders are disposable local workspaces, not part of the
+# golden template. Any component/token fix discovered while building one
+# should be committed at the library level (components/) instead — see
+# CLAUDE.md "Rule #1: Compose, Don't Invent".
+pocs/
