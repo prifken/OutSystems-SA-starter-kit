@@ -1,9 +1,12 @@
 name: Golden Fixture Checks
 
-# Runs the maintainer QA scripts (scripts/README.md) against the committed
-# regression fixture (scripts/golden-fixture/README.md) on every change to
-# the shared component library, so a components/ edit that breaks a real
-# prototype fails here instead of surfacing in someone's client build.
+# Runs lint-poc.js + verify-poc.js (scripts/README.md) against the
+# committed regression fixture (scripts/golden-fixture/README.md) on
+# every change to the shared component library, so a components/ edit
+# that breaks a real prototype fails here instead of surfacing in
+# someone's client build. Path-filtered on purpose, since these checks
+# are only meaningful when components/ or scripts/ actually changed —
+# see scan-secrets.yml for the check that runs on every PR regardless.
 
 on:
   pull_request:
@@ -33,10 +36,6 @@ jobs:
       - name: Install Playwright's Chromium
         working-directory: scripts
         run: npx playwright install --with-deps chromium
-
-      - name: Scan for secrets
-        working-directory: scripts
-        run: node scan-secrets.js
 
       - name: Lint golden fixture
         working-directory: scripts
