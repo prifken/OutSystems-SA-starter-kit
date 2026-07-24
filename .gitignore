@@ -3,6 +3,11 @@ _verify-output/
 .DS_Store
 .firecrawl/
 
+# Brand stress-test output (scripts/golden-fixture/BRAND_STRESS_TEST.md) is
+# always a real company's actual logo/colors, regenerated fresh per run —
+# never committed, same reasoning as pocs/ below.
+scripts/golden-fixture/_brand-stress-test/
+
 # Client POC folders are disposable local workspaces, not part of the
 # golden template. Any component/token fix discovered while building one
 # should be committed at the library level (components/) instead — see

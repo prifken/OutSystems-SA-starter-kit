@@ -70,11 +70,48 @@ every piece of it.
 | `<os-form-field>` | Label + input/select/textarea wrapper with validation states | attrs: `label`, `required`, `hint`, `error`, `success`; wraps a light-DOM control child |
 | `<os-search-filter-bar>` | Search input + optional extra filters | attr: `placeholder`; event: `os-search`; children render as extra filters |
 | `<os-empty-state>` | Placeholder for empty content | attrs: `icon`, `heading`, `text`, `action-label`, `action-href` |
-| `<os-chart-donut>` | Pure-SVG donut chart, no chart library | prop: `data` ([{label,value,color}]); attrs: `center-label`, `center-sub`, `size` |
+| `<os-chart-donut>` | Donut chart, rendered via vendored Highcharts (OutSystems' supported charting library) | prop: `data` ([{label,value,color}]); attrs: `center-label`, `center-sub`, `size`, `series-name` |
+| `<os-chart-bar>` | Bar/column chart for comparing a value across categories, also via Highcharts | prop: `data` ([{label,value,color}]); attrs: `height`, `horizontal`, `series-name`, `x-axis-label`, `y-axis-label` |
 
 Full implementation details and inline comments live in `os-components.js`
 itself — read the top-of-file comment block for each component before
 using it for the first time.
+
+## Primitives — The Layer Below the Component Library
+
+The table above is not the only sanctioned building material. `tokens.css`
+also defines plain CSS classes meant to be used directly on ordinary HTML
+elements (`<button>`, `<input>`, `<select>`, `<div>`) — no custom element,
+no JS, no entry in `os-components.js`. These are lower-level than the
+`os-*` components above them: a component like `<os-kpi-card>` is *built
+from* primitives like `.kpi-card`, but plenty of these primitives are also
+meant to be reached for directly, on their own, inside a screen.
+
+| Class(es) | Use on | Purpose |
+|---|---|---|
+| `.btn`, `.btn-primary/secondary/success/error/ai` | `<button>`/`<a>` | Standard action buttons; combine with `.btn-small`/`.btn-large`/`.btn-icon` |
+| `.form-control` | `<input>`/`<select>`/`<textarea>` | Standard field styling; add `.error`/`.success` for validation state |
+| `.checkbox`, `.radio` | wrapper `<label>` around a native input | Standard checkbox/radio row |
+| `.toggle`, `.toggle-switch` | wrapper around a native checkbox input | On/off switch |
+| `.file-upload` | wrapper `<label>` around `<input type="file">` | Drag/drop-styled upload target |
+| `.badge`, `.badge-primary/success/warning/error/info/neutral` | `<span>` | Color-coded pill — same visual as `<os-status-badge>` without the element |
+| `.alert`, `.alert-info/success/warning/error` (+ `.alert-icon`, `.alert-content`, `.alert-title`, `.alert-text`) | `<div>` | Inline banner/callout |
+| `.avatar`, `.avatar-sm/md/lg` | `<div>` | Initials/icon circle |
+| `.meter`, `.meter-track`, `.meter-fill`/`.meter-value` (+ `.safe`/`.warning`/`.danger`) | `<div>` | At-a-glance level indicator for a single current reading against a limit (e.g. a sensor value approaching a threshold) — set `.meter-fill`'s width inline per value; no JS, no history |
+| `.grid-2/3/4`, `.grid-2-1`, `.grid-1-2` | `<div>` | Responsive column layouts (collapse to 1 column under 1200px) |
+| `.text-primary/success/warning/error/muted`, `.mb-s/base/m`, `.flex`, `.items-center`, `.justify-between`, `.gap-s/base` | any element | Small layout/color utilities |
+
+**When to reach for a primitive instead of a component:** if a screen needs
+a small arrangement of standard controls that doesn't recur across
+prototypes as its own named thing — e.g. an inline approve/reject button
+pair next to a comment box, a row of status legend badges, a settings
+toggle — compose it directly from primitives in the screen's HTML. This is
+still "compose, don't invent" (Rule #1): you're combining existing,
+documented classes, not writing new CSS or bespoke markup. Reach for a
+full `os-*` component instead when the thing is a recognizable, reusable
+*unit* (a whole card, a whole table, a whole multi-step flow) — see "How to
+Build a New Prototype" step 5 for what to do when even the primitives
+don't cover a genuinely new, recurring need.
 
 ## How to Build a New Prototype
 
@@ -222,5 +259,62 @@ is what the team actually reviews and benefits from.
 - No ODC Studio / Mentor / OML generation — pure HTML/CSS/JS prototypes only
 - No client registry, no CRM sync, no transcript processing
 - No build tooling (npm, bundlers, TypeScript) — plain files, open in browser
-- No CDN dependencies (charts, icon fonts) — the donut chart is hand-rolled
-  SVG and icons are inlined as JS strings for exactly this reason
+- No CDN dependencies — `components/highcharts.js` (used by
+  `<os-chart-donut>` and `<os-chart-bar>`) is vendored locally, not
+  loaded from `code.highcharts.com`, so a prototype still opens with
+  zero live network requests. Icons are still inlined as JS strings for
+  the same reason.
+
+## Charting: Highcharts, Not Hand-Rolled
+
+`<os-chart-donut>` and `<os-chart-bar>` render via **Highcharts** —
+OutSystems' supported charting library — not custom SVG. The library
+file lives at
+`components/highcharts.js` (vendored via npm, not a CDN `<script>` — see
+"No CDN dependencies" above) and must be loaded with a `<script>` tag
+**before** `os-components.js`, same script-placement rule as everything
+else:
+
+```html
+<script src="../../components/highcharts.js"></script>
+<script src="../../components/os-components.js"></script>
+```
+
+If you add a new chart-based component, use Highcharts for it too — don't
+hand-roll a second charting approach. `components/HIGHCHARTS_LICENSE.txt`
+has the license terms; confirm your organization's actual Highcharts
+agreement covers the way you're using it (a client demo, an internal
+build, etc.) before treating this as settled — it isn't something this
+kit can decide on your behalf.
+
+## Rule: Dashboards Need a Chart, Not Just KPIs
+
+A row of `<os-kpi-card>`s is not a complete dashboard screen. Any screen
+built around a KPI row must also include **at least one Highcharts chart**
+(`<os-chart-donut>`, `<os-chart-bar>`, or a new chart component if neither
+fits — see "Charting: Highcharts, Not Hand-Rolled" above) — numbers alone
+read as a spreadsheet with styling, not a dashboard.
+
+Don't default to the same chart type every time. Pick it from what the
+requirements actually support, the same way you'd pick a component or
+primitive:
+
+- A whole broken into parts (statuses, categories) → `<os-chart-donut>`
+- Comparing a value across people/categories (workload per rep, volume
+  per region) → `<os-chart-bar>`
+- Change over time (a trend a KPI's `trend`/`trend-value` already implies)
+  → a line/area chart (add `<os-chart-line>` following the same pattern
+  if a prototype needs one — it doesn't exist yet)
+
+Use more than one chart only when the requirements clearly state or
+imply more than one distinct visual need — e.g. both "how many of each
+status" and "how is each rep doing" are real, different questions.
+Adding charts nobody asked for clutters the screen; the goal is one
+well-chosen visualization that earns its space, not decoration.
+
+`scripts/golden-fixture/dashboard.html` demonstrates this: its donut
+chart answers "how many loads of each status" and its bar chart answers
+"how is each dispatcher's workload distributed" — both real questions the
+transcript actually raises (Dana asks about status breakdowns and
+repeatedly frames the dashboard around "my dispatch team"), not
+decoration added to fill space.

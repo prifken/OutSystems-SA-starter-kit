@@ -1,0 +1,55 @@
+name: Golden Fixture Checks
+
+# Runs the maintainer QA scripts (scripts/README.md) against the committed
+# regression fixture (scripts/golden-fixture/README.md) on every change to
+# the shared component library, so a components/ edit that breaks a real
+# prototype fails here instead of surfacing in someone's client build.
+
+on:
+  pull_request:
+    paths:
+      - "components/**"
+      - "scripts/**"
+  push:
+    branches: [main]
+    paths:
+      - "components/**"
+      - "scripts/**"
+
+jobs:
+  golden-fixture:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install QA script dependencies
+        working-directory: scripts
+        run: npm ci
+
+      - name: Install Playwright's Chromium
+        working-directory: scripts
+        run: npx playwright install --with-deps chromium
+
+      - name: Scan for secrets
+        working-directory: scripts
+        run: node scan-secrets.js
+
+      - name: Lint golden fixture
+        working-directory: scripts
+        run: node lint-poc.js golden-fixture
+
+      - name: Verify golden fixture (screenshots + JS error check)
+        working-directory: scripts
+        run: node verify-poc.js golden-fixture
+
+      - name: Upload fixture screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: golden-fixture-screenshots
+          path: scripts/golden-fixture/_verify-output/
+          retention-days: 14

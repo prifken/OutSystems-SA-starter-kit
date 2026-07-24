@@ -755,7 +755,25 @@
      os-chart-donut
      Property: data [{label, value, color}]
      Attributes: center-label, center-sub, size (default 160)
+
+     Renders via Highcharts (components/highcharts.js, vendored locally —
+     see HIGHCHARTS_LICENSE.txt) as a pie chart with an innerSize hole,
+     not hand-rolled SVG. Requires <script src=".../highcharts.js"> to be
+     loaded BEFORE os-components.js — same script-placement rule as
+     everything else in this file, see CLAUDE.md "Script Placement".
+     Public API (attrs/props) and the surrounding tokens.css classes
+     (.chart-donut-wrapper, .chart-donut-legend, etc.) are unchanged from
+     the previous SVG implementation, so existing usage doesn't change.
+
+     Licensing: this vendors Highcharts' library file directly. Confirm
+     your organization's actual Highcharts license (commercial vs. the
+     non-commercial EULA — see HIGHCHARTS_LICENSE.txt) covers this use
+     before shipping a client-facing build; don't assume it's covered.
+     credits are left ON by default for the same reason — only disable
+     them (credits: { enabled: false }) if your license permits it.
      ============================================================ */
+  let chartDonutInstanceCounter = 0;
+
   class OsChartDonut extends HTMLElement {
     connectedCallback() { if (!this._data) this._data = []; this.render(); }
     set data(val) { this._data = val || []; this.render(); }
@@ -764,34 +782,16 @@
     render() {
       const data = this._data || [];
       const size = parseInt(this.getAttribute("size") || "160", 10);
-      const strokeWidth = Math.round(size * 0.16);
-      const radius = (size - strokeWidth) / 2;
-      const circumference = 2 * Math.PI * radius;
-      const total = data.reduce((sum, d) => sum + d.value, 0) || 1;
-
-      let offset = 0;
-      const segments = data
-        .map((d) => {
-          const fraction = d.value / total;
-          const length = fraction * circumference;
-          const dasharray = length + " " + (circumference - length);
-          const circle =
-            '<circle cx="' + size / 2 + '" cy="' + size / 2 + '" r="' + radius + '" fill="none" stroke="' + esc(d.color) + '" ' +
-            'stroke-width="' + strokeWidth + '" stroke-dasharray="' + dasharray + '" stroke-dashoffset="' + -offset + '"></circle>';
-          offset += length;
-          return circle;
-        })
-        .join("");
-
       const centerLabel = this.getAttribute("center-label") || "";
       const centerSub = this.getAttribute("center-sub") || "";
+      const containerId = "os-chart-donut-" + (chartDonutInstanceCounter += 1);
 
       this.innerHTML =
         '<div class="chart-donut-wrapper">' +
         '<div style="position:relative;width:' + size + "px;height:" + size + 'px;">' +
-        '<svg class="chart-donut-svg" width="' + size + '" height="' + size + '">' + segments + "</svg>" +
+        '<div id="' + containerId + '" style="width:' + size + "px;height:" + size + 'px;"></div>' +
         (centerLabel
-          ? '<div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;">' +
+          ? '<div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none;">' +
             '<span class="chart-donut-center-label">' + esc(centerLabel) + "</span>" +
             (centerSub ? '<span class="chart-donut-center-sub">' + esc(centerSub) + "</span>" : "") +
             "</div>"
@@ -808,6 +808,111 @@
           .join("") +
         "</div>" +
         "</div>";
+
+      if (!window.Highcharts) {
+        document.getElementById(containerId).innerHTML =
+          '<div class="text-error" style="font-size:var(--font-size-xs);padding:var(--space-s);">' +
+          "Highcharts not loaded — add &lt;script src=\".../components/highcharts.js\"&gt; before os-components.js.</div>";
+        return;
+      }
+
+      window.Highcharts.chart(containerId, {
+        // animation: false is deliberate, not an aesthetic choice — Highcharts'
+        // default ~1s entrance animation means any screenshot-based check
+        // (verify-poc.js, or just a screenshot taken shortly after load)
+        // captures the pie mid-draw and looks broken (a tiny sliver, not a
+        // full ring). Disabling it makes the chart render at final size
+        // immediately, which this kit's whole screenshot-based regression
+        // testing depends on.
+        chart: { type: "pie", width: size, height: size, backgroundColor: "transparent", margin: [0, 0, 0, 0], spacing: [0, 0, 0, 0], animation: false },
+        title: { text: null },
+        credits: { enabled: true },
+        legend: { enabled: false },
+        tooltip: { pointFormat: "{point.name}: <b>{point.y}</b>" },
+        plotOptions: {
+          series: { animation: false },
+          pie: {
+            innerSize: "70%",
+            borderWidth: 2,
+            borderColor: getComputedStyle(document.body).getPropertyValue("--color-neutral-0") || "#fff",
+            dataLabels: { enabled: false }
+          }
+        },
+        series: [
+          {
+            name: this.getAttribute("series-name") || "Value",
+            data: data.map((d) => ({ name: d.label, y: d.value, color: d.color }))
+          }
+        ]
+      });
+    }
+  }
+
+  /* ============================================================
+     os-chart-bar
+     Property: data [{label, value, color}]
+     Attributes: height (default 220), horizontal ("true" for a
+     horizontal bar chart, default is a vertical column chart),
+     series-name, x-axis-label, y-axis-label
+
+     Renders via Highcharts, same as os-chart-donut — see the rule in
+     CLAUDE.md "Charting: Highcharts, Not Hand-Rolled". For comparing a
+     value across categories (workload per rep, volume per region), not
+     for a whole-broken-into-parts breakdown — use os-chart-donut for
+     that. See CLAUDE.md "Rule: Dashboards Need a Chart, Not Just KPIs"
+     for when to reach for which.
+     ============================================================ */
+  let chartBarInstanceCounter = 0;
+
+  class OsChartBar extends HTMLElement {
+    connectedCallback() { if (!this._data) this._data = []; this.render(); }
+    set data(val) { this._data = val || []; this.render(); }
+    get data() { return this._data || []; }
+
+    render() {
+      const data = this._data || [];
+      const height = parseInt(this.getAttribute("height") || "220", 10);
+      const horizontal = this.getAttribute("horizontal") === "true";
+      const containerId = "os-chart-bar-" + (chartBarInstanceCounter += 1);
+
+      this.innerHTML = '<div id="' + containerId + '" style="width:100%;height:' + height + 'px;"></div>';
+
+      if (!window.Highcharts) {
+        document.getElementById(containerId).innerHTML =
+          '<div class="text-error" style="font-size:var(--font-size-xs);padding:var(--space-s);">' +
+          "Highcharts not loaded — add &lt;script src=\".../components/highcharts.js\"&gt; before os-components.js.</div>";
+        return;
+      }
+
+      window.Highcharts.chart(containerId, {
+        chart: { type: horizontal ? "bar" : "column", height: height, backgroundColor: "transparent", animation: false },
+        title: { text: null },
+        credits: { enabled: true },
+        legend: { enabled: false },
+        xAxis: {
+          categories: data.map((d) => d.label),
+          title: { text: this.getAttribute("x-axis-label") || null },
+          labels: { style: { fontSize: "12px" } },
+          lineColor: getComputedStyle(document.body).getPropertyValue("--color-neutral-4") || "#dee2e6"
+        },
+        yAxis: {
+          title: { text: this.getAttribute("y-axis-label") || null },
+          gridLineColor: getComputedStyle(document.body).getPropertyValue("--color-neutral-3") || "#e9ecef"
+        },
+        tooltip: { pointFormat: "<b>{point.y}</b>" },
+        plotOptions: {
+          series: { animation: false, borderRadius: 3 },
+          column: { pointPadding: 0.1, groupPadding: 0.1 },
+          bar: { pointPadding: 0.1, groupPadding: 0.1 }
+        },
+        series: [
+          {
+            name: this.getAttribute("series-name") || "Value",
+            data: data.map((d) => ({ y: d.value, color: d.color })),
+            colorByPoint: !data.some((d) => d.color)
+          }
+        ]
+      });
     }
   }
 
@@ -826,6 +931,7 @@
   customElements.define("os-search-filter-bar", OsSearchFilterBar);
   customElements.define("os-empty-state", OsEmptyState);
   customElements.define("os-chart-donut", OsChartDonut);
+  customElements.define("os-chart-bar", OsChartBar);
 
   // Expose the icon helper so page-level scripts can reuse the same set
   // (e.g. for a header button icon) without duplicating SVG markup.
