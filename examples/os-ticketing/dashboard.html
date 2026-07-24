@@ -9,6 +9,12 @@
   Everything here is composed from ../../components/ — nothing
   custom is invented in this file. If you're building your own
   prototype, this is the file to copy first.
+
+  Demonstrates CLAUDE.md's "Rule: Dashboards Need a Chart, Not Just
+  KPIs" — the KPI row alone isn't enough, so this also includes a donut
+  (ticket status breakdown, a whole broken into parts) and a bar chart
+  (tickets per agent, comparing across a category), both built from the
+  same TICKETS array already used for the table below, not invented data.
 -->
 <link rel="stylesheet" href="../../components/tokens.css">
 </head>
@@ -49,23 +55,43 @@
           <os-kpi-card label="CSAT Score" value="94%" variant="success" sub="Last 30 days" trend="up" trend-value="+2%"></os-kpi-card>
         </div>
 
-        <!-- Search + filter -->
-        <div class="mb-base">
-          <os-search-filter-bar id="filterBar" placeholder="Search by subject or requester...">
-            <select class="form-control" id="statusFilter">
-              <option value="">All Statuses</option>
-              <option value="Open">Open</option>
-              <option value="Pending">Pending</option>
-              <option value="Resolved">Resolved</option>
-              <option value="Escalated">Escalated</option>
-            </select>
-          </os-search-filter-bar>
-        </div>
+        <div class="grid-2-1">
+          <div>
+            <!-- Search + filter -->
+            <div class="mb-base">
+              <os-search-filter-bar id="filterBar" placeholder="Search by subject or requester...">
+                <select class="form-control" id="statusFilter">
+                  <option value="">All Statuses</option>
+                  <option value="Open">Open</option>
+                  <option value="Pending">Pending</option>
+                  <option value="Resolved">Resolved</option>
+                  <option value="Escalated">Escalated</option>
+                </select>
+              </os-search-filter-bar>
+            </div>
 
-        <!-- Ticket table -->
-        <os-card heading="All Tickets" action-label="Export" action-href="#">
-          <os-data-table id="ticketsTable" row-href-template="ticket-detail.html?id={id}" clickable empty-text="No tickets match your filters."></os-data-table>
-        </os-card>
+            <!-- Ticket table -->
+            <os-card heading="All Tickets" action-label="Export" action-href="#">
+              <os-data-table id="ticketsTable" row-href-template="ticket-detail.html?id={id}" clickable empty-text="No tickets match your filters."></os-data-table>
+            </os-card>
+          </div>
+
+          <div class="flex" style="flex-direction: column; gap: var(--space-base);">
+            <os-card heading="Ticket Status">
+              <os-chart-donut id="statusDonut" center-label="6" center-sub="Total Tickets"></os-chart-donut>
+              <div class="flex mb-s" style="gap: var(--space-s); flex-wrap: wrap; justify-content: center; margin-top: var(--space-base);">
+                <span class="badge badge-info">Open</span>
+                <span class="badge badge-warning">Pending</span>
+                <span class="badge badge-error">Escalated</span>
+                <span class="badge badge-success">Resolved</span>
+              </div>
+            </os-card>
+
+            <os-card heading="Tickets by Agent">
+              <os-chart-bar id="agentBar" height="180" y-axis-label="Tickets"></os-chart-bar>
+            </os-card>
+          </div>
+        </div>
 
       </div>
     </main>
@@ -77,8 +103,11 @@
     os-wizard-stepper, os-card, os-sidebar-nav) need those children to
     already exist in the DOM before they upgrade — loading the script
     after all the markup guarantees that. Keep this ordering in any
-    screen you build from this example.
+    screen you build from this example. highcharts.js must load before
+    os-components.js too — see CLAUDE.md "Charting: Highcharts, Not
+    Hand-Rolled".
   -->
+  <script src="../../components/highcharts.js"></script>
   <script src="../../components/os-components.js"></script>
   <script>
     // The full ticket set for this demo. In a real POC this would come from
@@ -128,6 +157,24 @@
       statusValue = e.target.value;
       applyFilters();
     });
+
+    // Both charts are built from the same TICKETS array above — no
+    // separate/invented dataset, same rule as the golden fixture.
+    const STATUS_COLORS = { Open: "#0077b6", Pending: "#e9a100", Escalated: "#dc2020", Resolved: "#29823b" };
+    const ticketsByStatus = {};
+    TICKETS.forEach((t) => {
+      if (!ticketsByStatus[t.status]) ticketsByStatus[t.status] = { label: t.status, value: 0, color: STATUS_COLORS[t.status] };
+      ticketsByStatus[t.status].value += 1;
+    });
+    document.getElementById("statusDonut").data = Object.values(ticketsByStatus);
+
+    const ticketsByAgent = {};
+    TICKETS.forEach((t) => {
+      const key = t.assignee.name;
+      if (!ticketsByAgent[key]) ticketsByAgent[key] = { label: key, value: 0, color: t.assignee.color };
+      ticketsByAgent[key].value += 1;
+    });
+    document.getElementById("agentBar").data = Object.values(ticketsByAgent);
   </script>
 </body>
 </html>
