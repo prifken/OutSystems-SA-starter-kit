@@ -53,6 +53,20 @@ prototype you build looking and behaving consistently, and what makes it
 possible for another SA to open your prototype and immediately recognize
 every piece of it.
 
+## Rule #2: Keep Typed Columns Typed
+
+A column whose name implies a type — a `_count`, a date, an amount — must
+only ever hold values of that type. Don't repurpose it to also carry
+status semantics: no `"6 (pending)"`, no `"—"` for not-yet-known, no
+`"AHJ conflict"` sitting in a count column. That's what the row's status
+column/badge is for — it already renders the pending/processing/flagged
+state next to the value. If a count isn't known yet, show the best real
+number available (`0` if genuinely none yet), not placeholder text, and
+let the status column explain why it might still change. Mixing a value's
+type with its state makes the column impossible to sort, sum, or reason
+about, and it's exactly the kind of thing that looks fine in a mockup and
+breaks the moment someone wires it to a real API response.
+
 ## The Component Library
 
 | Element | Purpose | Config |
@@ -71,6 +85,7 @@ every piece of it.
 | `<os-search-filter-bar>` | Search input + optional extra filters | attr: `placeholder`; event: `os-search`; children render as extra filters |
 | `<os-empty-state>` | Placeholder for empty content | attrs: `icon`, `heading`, `text`, `action-label`, `action-href` |
 | `<os-chart-donut>` | Pure-SVG donut chart, no chart library | prop: `data` ([{label,value,color}]); attrs: `center-label`, `center-sub`, `size` |
+| `<os-floorplan-viewer>` | Image with overlaid pins/room boxes + synced room list, for any spatial human-in-the-loop review workflow | prop: `rooms` ([{id,label,status,x,y,w,h,sprinklers}], x/y/w/h/sprinkler coords as % of image size); attr: `image`; method: `selectRoom(id)`; event: `os-room-select` |
 
 Full implementation details and inline comments live in `os-components.js`
 itself — read the top-of-file comment block for each component before
@@ -80,7 +95,8 @@ using it for the first time.
 
 1. Copy `examples/os-ticketing/` to a new folder — e.g. `pocs/acme-corp/`
    (or wherever you keep client work; this kit doesn't prescribe a
-   directory beyond `examples/`).
+   directory beyond `examples/`). The copied folder already includes an
+   `index.html` — see the rule below — keep it.
 2. Keep the two `<link>`/`<script>` references pointed at
    `../../components/tokens.css` and `../../components/os-components.js`
    (adjust the relative path if your new folder is nested differently).
@@ -138,6 +154,66 @@ this into README.md, CLAUDE.md, or any other file committed to the repo —
 the absolute path is specific to wherever a given person cloned or
 downloaded it, so building it dynamically per-session is required for it
 to work for anyone else.
+
+## Every Prototype Needs an `index.html` Landing on the Dashboard
+
+Every prototype folder (the `examples/os-ticketing/` reference example
+included) must contain an `index.html` that lands the visitor on the
+dashboard screen. Static hosts — Netlify, GitHub Pages, S3, etc. — serve
+`index.html` by default at a site's root; without one, dragging a
+prototype folder onto Netlify (or any equivalent one-click deploy) has no
+defined entry point. This is a hard rule, not a per-client judgment call.
+
+The simplest correct implementation is a redirect page, not a duplicate
+copy of the dashboard screen (a copy drifts out of sync the moment the
+real dashboard changes):
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="refresh" content="0; url=dashboard.html">
+<title>Redirecting…</title>
+</head>
+<body>
+  <p>Redirecting to the <a href="dashboard.html">dashboard</a>…</p>
+  <script>window.location.replace("dashboard.html");</script>
+</body>
+</html>
+```
+
+If your prototype's dashboard-equivalent screen has a different filename,
+point the redirect at that file instead — the rule is "index.html lands
+on whatever screen a fresh visitor should see first," not literally the
+string `dashboard.html`.
+
+**A deployable prototype must also be self-contained.** Every screen
+normally links `../../components/tokens.css` and
+`../../components/os-components.js` — correct for local development,
+where the prototype lives two levels under the shared `components/`
+folder. But a Netlify (or any static host) deploy typically uploads only
+the prototype's own folder, not the rest of the repo — `../../` then
+points outside the deployed site entirely, and every asset 404s (this
+kit found out the hard way: it silently breaks *both* the CSS and every
+custom element, since `os-components.js` itself 404s too). Before
+deploying a prototype standalone:
+
+1. Copy `components/tokens.css`, `components/os-components.js`, and
+   `components/os_logo.png` into a `components/` subfolder inside the
+   prototype's own folder.
+2. Change every screen's `../../components/...` references to
+   `components/...` (one level, not two).
+3. `os-sidebar-nav`'s `powered-by-logo` attribute defaults to
+   `../../components/os_logo.png` — it needs the same fix. Pass
+   `powered-by-logo="components/os_logo.png"` explicitly on every
+   `<os-sidebar-nav>` tag; don't rely on the default once the shared
+   path no longer applies.
+4. Verify before handing off the deploy: `curl` (or open directly) every
+   asset path the deployed folder needs and confirm each one 200s —
+   don't just eyeball the rendered page, since a missing CSS file can
+   look "close enough" at a glance while a missing JS file silently
+   breaks every `<os-*>` tag on the page.
 
 ## Script Placement — Read This Before Moving Anything
 

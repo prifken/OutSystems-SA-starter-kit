@@ -57,7 +57,8 @@
     "file-text": '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line>',
     inbox: '<path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>',
     logout: '<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line>',
-    briefcase: '<rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>'
+    briefcase: '<rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>',
+    "sprinkler-head": '<circle cx="12" cy="12" r="3"></circle><line x1="12" y1="2" x2="12" y2="6"></line><line x1="12" y1="18" x2="12" y2="22"></line><line x1="2" y1="12" x2="6" y2="12"></line><line x1="18" y1="12" x2="22" y2="12"></line><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"></line><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"></line><line x1="4.93" y1="19.07" x2="7.76" y2="16.24"></line><line x1="16.24" y1="7.76" x2="19.07" y2="4.93"></line>'
   };
 
   function icon(name, size) {
@@ -811,6 +812,108 @@
     }
   }
 
+  /* ============================================================
+     os-floorplan-viewer
+     A floor plan image with room bounding boxes and sprinkler-head
+     pins overlaid, plus a synced room list. Built for any workflow
+     where an AI proposes spatial placements on an image and a human
+     reviews/approves them room by room (not fire-sprinkler-specific).
+
+     Property: rooms [{id, label, status, x, y, w, h, sprinklers}]
+       x/y/w/h: room bounding box as PERCENTAGES of image width/height
+         (0-100) — resolution-independent, so any floor plan image
+         size works without recalculating pixel coordinates.
+       sprinklers: [{x, y}] pin coordinates, also percentages.
+       status: 'pending' (not yet reviewed, default) | 'current'
+         (active room being reviewed) | 'approved' | 'flagged'
+         (AI/human conflict or needs manual placement)
+     Attribute: image (src path to the floor plan image)
+     Method: selectRoom(id)
+     Event: os-room-select {roomId, room} (bubbles)
+     ============================================================ */
+  const FLOORPLAN_STATUS = {
+    pending: { variant: "neutral", label: "Pending Review" },
+    current: { variant: "info", label: "In Review" },
+    approved: { variant: "success", label: "Approved" },
+    flagged: { variant: "error", label: "Flagged" }
+  };
+
+  class OsFloorplanViewer extends HTMLElement {
+    connectedCallback() { if (!this._rooms) this._rooms = []; this.render(); }
+    set rooms(val) {
+      this._rooms = val || [];
+      if (!this._activeRoomId && this._rooms.length) this._activeRoomId = this._rooms[0].id;
+      this.render();
+    }
+    get rooms() { return this._rooms || []; }
+
+    render() {
+      const rooms = this._rooms || [];
+      const image = this.getAttribute("image") || "";
+      const activeId = this._activeRoomId;
+
+      const boxes = rooms
+        .filter((r) => r.x != null)
+        .map(
+          (r) =>
+            '<div class="floorplan-room-box' + (r.id === activeId ? " active" : "") + '" data-room="' + esc(r.id) +
+            '" style="left:' + r.x + "%;top:" + r.y + "%;width:" + r.w + "%;height:" + r.h + '%"></div>'
+        )
+        .join("");
+
+      const pins = rooms
+        .flatMap((r) =>
+          (r.sprinklers || []).map(
+            (p, i) =>
+              '<button type="button" class="floorplan-pin pin-' + esc(r.status || "pending") + (r.id === activeId ? " active" : "") +
+              '" style="left:' + p.x + "%;top:" + p.y + '%" data-room="' + esc(r.id) + '" title="' +
+              esc(r.label) + " — sprinkler " + (i + 1) + '">' + icon("sprinkler-head", 14) + "</button>"
+          )
+        )
+        .join("");
+
+      const legend =
+        '<div class="floorplan-legend">' +
+        Object.keys(FLOORPLAN_STATUS)
+          .map((k) => '<span class="floorplan-legend-item"><span class="floorplan-legend-dot pin-' + k + '"></span>' + esc(FLOORPLAN_STATUS[k].label) + "</span>")
+          .join("") +
+        "</div>";
+
+      const listItems = rooms
+        .map((r) => {
+          const meta = FLOORPLAN_STATUS[r.status] || FLOORPLAN_STATUS.pending;
+          return (
+            '<button type="button" class="floorplan-room-item' + (r.id === activeId ? " active" : "") + '" data-room="' + esc(r.id) + '">' +
+            '<span class="floorplan-room-name">' + esc(r.label) + "</span>" +
+            '<span class="badge badge-' + meta.variant + '">' + esc(meta.label) + "</span>" +
+            "</button>"
+          );
+        })
+        .join("");
+
+      this.innerHTML =
+        '<div class="floorplan-viewer">' +
+        '<div class="floorplan-stage">' +
+        (image ? '<img class="floorplan-image" src="' + esc(image) + '" alt="Floor plan">' : '<div class="floorplan-empty">No floor plan uploaded</div>') +
+        '<div class="floorplan-overlay">' + boxes + pins + "</div>" +
+        "</div>" +
+        legend +
+        '<div class="floorplan-room-list"><div class="floorplan-room-list-title">Rooms</div>' + listItems + "</div>" +
+        "</div>";
+
+      this.querySelectorAll("[data-room]").forEach((el) => {
+        el.addEventListener("click", () => this.selectRoom(el.getAttribute("data-room")));
+      });
+    }
+
+    selectRoom(id) {
+      this._activeRoomId = id;
+      this.render();
+      const room = (this._rooms || []).find((r) => r.id === id);
+      this.dispatchEvent(new CustomEvent("os-room-select", { detail: { roomId: id, room }, bubbles: true }));
+    }
+  }
+
   /* ---------------------------------------------------------- */
   customElements.define("os-sidebar-nav", OsSidebarNav);
   customElements.define("os-kpi-card", OsKpiCard);
@@ -826,6 +929,7 @@
   customElements.define("os-search-filter-bar", OsSearchFilterBar);
   customElements.define("os-empty-state", OsEmptyState);
   customElements.define("os-chart-donut", OsChartDonut);
+  customElements.define("os-floorplan-viewer", OsFloorplanViewer);
 
   // Expose the icon helper so page-level scripts can reuse the same set
   // (e.g. for a header button icon) without duplicating SVG markup.
