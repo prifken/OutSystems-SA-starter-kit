@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard | Harborline Logistics</title>
+<!--
+  Golden fixture, screen 1 of 3: dispatch ops dashboard. Built from
+  scripts/golden-fixture/transcript.md — see README.md in this folder for
+  what this fixture is for. Composed entirely from ../../components/,
+  same rule as any other prototype in this kit.
+-->
+<link rel="stylesheet" href="../../components/tokens.css">
+</head>
+<body>
+  <div class="layout">
+
+    <!-- Sidebar: identical markup on every screen in this fixture except `active`.
+         "Live Map" is data-disabled="true" — the transcript's live-GPS-tracking ask
+         is real but out of scope for a prototype (see "What This Kit Deliberately
+         Does Not Have" in CLAUDE.md); this renders the destination as part of the
+         nav story without faking a live map that isn't real. -->
+    <os-sidebar-nav active="dashboard" logo="../../components/os_logo_reversed.png" brand="Harborline Logistics" home-href="dashboard.html">
+      <a href="dashboard.html" data-nav="dashboard" data-icon="grid">Dashboard</a>
+      <a href="dashboard.html" data-nav="shipments" data-icon="ticket">Shipments</a>
+      <a href="#" data-nav="live-map" data-icon="briefcase" data-disabled="true">Live Map</a>
+      <a href="settings.html" data-nav="settings" data-icon="settings">Settings</a>
+    </os-sidebar-nav>
+
+    <main class="main-content">
+      <header class="header">
+        <div class="header-left">
+          <div>
+            <h1 class="header-title">Dispatch Dashboard</h1>
+            <p class="header-subtitle">All active loads across all yards</p>
+          </div>
+        </div>
+        <div class="header-actions">
+          <div class="avatar">DW</div>
+          <a href="new-shipment.html" class="btn btn-primary">+ New Shipment</a>
+        </div>
+      </header>
+
+      <div class="page">
+
+        <!-- KPI row -->
+        <div class="grid-4 mb-m">
+          <os-kpi-card label="On-Time %" value="91%" variant="success" sub="Last 7 days" trend="up" trend-value="+3%"></os-kpi-card>
+          <os-kpi-card label="Active Loads" value="47" variant="primary" sub="Across 3 yards"></os-kpi-card>
+          <os-kpi-card label="Exceptions Flagged" value="5" variant="warning" sub="Needs dispatcher review"></os-kpi-card>
+          <os-kpi-card label="Avg Transit Time" value="2.4 days" variant="primary" sub="Last 30 days" trend="down" trend-value="-6%"></os-kpi-card>
+        </div>
+
+        <div class="grid-2-1 mb-m">
+          <!-- Search + filter + table -->
+          <os-card heading="All Shipments" action-label="Export" action-href="#">
+            <div class="mb-base">
+              <os-search-filter-bar id="filterBar" placeholder="Search by load number or customer...">
+                <select class="form-control" id="statusFilter">
+                  <option value="">All Statuses</option>
+                  <option value="On Time">On Time</option>
+                  <option value="Delayed">Delayed</option>
+                  <option value="Exception">Exception</option>
+                  <option value="Delivered">Delivered</option>
+                </select>
+              </os-search-filter-bar>
+            </div>
+            <os-data-table id="shipmentsTable" row-href-template="shipment-detail.html?id={id}" clickable empty-text="No shipments match your filters."></os-data-table>
+          </os-card>
+
+          <!-- Two stacked charts, per CLAUDE.md "Rule: Dashboards Need a
+               Chart, Not Just KPIs" — two distinct real questions from the
+               transcript, not decoration: "how many loads of each status"
+               (a whole broken into parts → donut) and "how is each
+               dispatcher's workload distributed" (comparing across
+               categories → bar), matching Dana's repeated framing of the
+               dashboard around "my dispatch team." -->
+          <div class="flex" style="flex-direction: column; gap: var(--space-base);">
+
+            <!-- Status breakdown + a plain-primitive legend (Tier 2: .badge-*
+                 used directly, not through <os-status-badge>, since this is a
+                 static color key rather than a per-row data value). -->
+            <os-card heading="Active Load Status">
+              <os-chart-donut id="statusDonut" center-label="47" center-sub="Active Loads"></os-chart-donut>
+              <div class="flex mb-s" style="gap: var(--space-s); flex-wrap: wrap; justify-content: center; margin-top: var(--space-base);">
+                <span class="badge badge-success">On Time</span>
+                <span class="badge badge-warning">Delayed</span>
+                <span class="badge badge-error">Exception</span>
+              </div>
+            </os-card>
+
+            <os-card heading="Active Loads by Dispatcher">
+              <os-chart-bar id="dispatcherBar" height="180" y-axis-label="Loads"></os-chart-bar>
+            </os-card>
+
+          </div>
+        </div>
+
+      </div>
+    </main>
+  </div>
+
+  <!-- Loaded at the end of body — see the comment in examples/os-ticketing/dashboard.html for why. -->
+  <script src="../../components/highcharts.js"></script>
+  <script src="../../components/os-components.js"></script>
+  <script>
+    const SHIPMENTS = [
+      { id: "HL-4821", route: "Laredo, TX → Chicago, IL", customer: "Meridian Foods", status: "Exception", statusVariant: "error", trailer: "Reefer", dispatcher: { name: "Carlos Reyes", initials: "CR", color: "#1068eb" }, eta: "Today, 6:00 PM" },
+      { id: "HL-4819", route: "Savannah, GA → Charlotte, NC", customer: "Palmetto Textiles", status: "On Time", statusVariant: "success", trailer: "Dry Van", dispatcher: { name: "Naomi Blake", initials: "NB", color: "#29823b" }, eta: "Today, 4:15 PM" },
+      { id: "HL-4816", route: "El Paso, TX → Phoenix, AZ", customer: "Sonora Produce Co.", status: "Delayed", statusVariant: "warning", trailer: "Reefer", dispatcher: { name: "Carlos Reyes", initials: "CR", color: "#1068eb" }, eta: "Tomorrow, 9:00 AM" },
+      { id: "HL-4811", route: "Newark, NJ → Boston, MA", customer: "Beacon Pharma Supply", status: "On Time", statusVariant: "success", trailer: "Reefer", dispatcher: { name: "Naomi Blake", initials: "NB", color: "#29823b" }, eta: "Today, 2:30 PM" },
+      { id: "HL-4805", route: "Memphis, TN → Nashville, TN", customer: "Cumberland Auto Parts", status: "Delivered", statusVariant: "neutral", trailer: "Dry Van", dispatcher: { name: "Jon Petrov", initials: "JP", color: "#7c3aed" }, eta: "Delivered 8:05 AM" },
+      { id: "HL-4798", route: "Dallas, TX → Houston, TX", customer: "Lone Star Hardware", status: "On Time", statusVariant: "success", trailer: "Dry Van", dispatcher: { name: "Jon Petrov", initials: "JP", color: "#7c3aed" }, eta: "Today, 1:00 PM" }
+    ];
+
+    const table = document.getElementById("shipmentsTable");
+    table.columns = [
+      { key: "id", label: "Load #" },
+      { key: "route", label: "Route" },
+      { key: "customer", label: "Customer" },
+      { key: "status", label: "Status", type: "status" },
+      { key: "trailer", label: "Trailer" },
+      { key: "dispatcher", label: "Dispatcher", type: "user" },
+      { key: "eta", label: "ETA" }
+    ];
+
+    let searchValue = "";
+    let statusValue = "";
+
+    function applyFilters() {
+      const q = searchValue.trim().toLowerCase();
+      table.rows = SHIPMENTS.filter((s) => {
+        const matchesSearch = !q || s.id.toLowerCase().includes(q) || s.customer.toLowerCase().includes(q);
+        const matchesStatus = !statusValue || s.status === statusValue;
+        return matchesSearch && matchesStatus;
+      });
+    }
+
+    applyFilters();
+
+    document.getElementById("filterBar").addEventListener("os-search", (e) => {
+      searchValue = e.detail.value;
+      applyFilters();
+    });
+
+    document.getElementById("statusFilter").addEventListener("change", (e) => {
+      statusValue = e.target.value;
+      applyFilters();
+    });
+
+    document.getElementById("statusDonut").data = [
+      { label: "On Time", value: 34, color: "#29823b" },
+      { label: "Delayed", value: 8, color: "#e9a100" },
+      { label: "Exception", value: 5, color: "#dc2020" }
+    ];
+
+    // Reuses the same SHIPMENTS array + dispatcher colors already defined
+    // above for the table's avatars — not a separate invented dataset.
+    const loadsByDispatcher = {};
+    SHIPMENTS.forEach((s) => {
+      const key = s.dispatcher.name;
+      if (!loadsByDispatcher[key]) loadsByDispatcher[key] = { label: key, value: 0, color: s.dispatcher.color };
+      loadsByDispatcher[key].value += 1;
+    });
+    document.getElementById("dispatcherBar").data = Object.values(loadsByDispatcher);
+  </script>
+</body>
+</html>

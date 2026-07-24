@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>New Shipment | Harborline Logistics</title>
+<!--
+  Golden fixture, screen 3 of 3: new shipment wizard. Demonstrates
+  os-wizard-stepper + os-form-field with a review step before submit —
+  directly from the transcript: "before they hit submit I want them to
+  actually see a summary, because right now people fat-finger a
+  destination code."
+-->
+<link rel="stylesheet" href="../../components/tokens.css">
+</head>
+<body>
+  <div class="layout">
+
+    <os-sidebar-nav active="shipments" logo="../../components/os_logo_reversed.png" brand="Harborline Logistics" home-href="dashboard.html">
+      <a href="dashboard.html" data-nav="dashboard" data-icon="grid">Dashboard</a>
+      <a href="dashboard.html" data-nav="shipments" data-icon="ticket">Shipments</a>
+      <a href="#" data-nav="live-map" data-icon="briefcase" data-disabled="true">Live Map</a>
+      <a href="settings.html" data-nav="settings" data-icon="settings">Settings</a>
+    </os-sidebar-nav>
+
+    <main class="main-content">
+      <header class="header">
+        <div class="header-left">
+          <div>
+            <h1 class="header-title">New Shipment</h1>
+            <p class="header-subtitle">Create a new load</p>
+          </div>
+        </div>
+        <div class="header-actions">
+          <a href="dashboard.html" class="btn btn-secondary">Cancel</a>
+        </div>
+      </header>
+
+      <div class="page">
+        <os-card>
+          <os-wizard-stepper id="shipmentWizard" submit-label="Create Shipment">
+
+            <!-- Step 1: Route -->
+            <div data-step-label="Route">
+              <h3 class="mb-base">Where's this load going?</h3>
+              <div class="form-row">
+                <os-form-field id="originField" label="Origin" required>
+                  <input type="text" id="originInput" placeholder="e.g. Laredo, TX">
+                </os-form-field>
+                <os-form-field id="destinationField" label="Destination" required>
+                  <input type="text" id="destinationInput" placeholder="e.g. Chicago, IL">
+                </os-form-field>
+              </div>
+              <os-form-field id="customerField" label="Customer" required>
+                <input type="text" id="customerInput" placeholder="e.g. Meridian Foods">
+              </os-form-field>
+            </div>
+
+            <!-- Step 2: Cargo & Trailer -->
+            <div data-step-label="Cargo &amp; Trailer">
+              <h3 class="mb-base">What's being hauled?</h3>
+              <div class="form-row">
+                <os-form-field id="trailerField" label="Trailer Type" required>
+                  <select id="trailerSelect">
+                    <option value="">Select a trailer type...</option>
+                    <option value="Dry Van">Dry Van</option>
+                    <option value="Reefer">Reefer (Refrigerated)</option>
+                    <option value="Flatbed">Flatbed</option>
+                  </select>
+                </os-form-field>
+                <os-form-field id="etaField" label="Requested ETA" required>
+                  <input type="text" id="etaInput" placeholder="e.g. Jul 24, 2026, 6:00 PM">
+                </os-form-field>
+              </div>
+              <os-form-field id="cargoField" label="Cargo Description" required hint="What's on the truck — commodity, weight, any handling notes.">
+                <textarea id="cargoInput" placeholder="e.g. Refrigerated produce, 38,000 lbs, keep under 36°F"></textarea>
+              </os-form-field>
+            </div>
+
+            <!-- Step 3: Review -->
+            <div data-step-label="Review">
+              <h3 class="mb-base">Review before submitting</h3>
+              <div class="form-row">
+                <div class="form-group">
+                  <span class="form-label">Origin</span>
+                  <span class="form-value emphasis" id="reviewOrigin">&mdash;</span>
+                </div>
+                <div class="form-group">
+                  <span class="form-label">Destination</span>
+                  <span class="form-value emphasis" id="reviewDestination">&mdash;</span>
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <span class="form-label">Customer</span>
+                  <span class="form-value" id="reviewCustomer">&mdash;</span>
+                </div>
+                <div class="form-group">
+                  <span class="form-label">Trailer Type</span>
+                  <span class="form-value" id="reviewTrailer">&mdash;</span>
+                </div>
+              </div>
+              <div class="form-group">
+                <span class="form-label">Cargo</span>
+                <span class="form-value" id="reviewCargo">&mdash;</span>
+              </div>
+              <div class="alert alert-info">
+                <div class="alert-icon" id="reviewAlertIcon"></div>
+                <div class="alert-content">
+                  <div class="alert-title">What happens next</div>
+                  <div class="alert-text">This shipment will appear on the dashboard immediately, and the assigned dispatcher gets notified based on their notification preferences.</div>
+                </div>
+              </div>
+            </div>
+
+          </os-wizard-stepper>
+        </os-card>
+      </div>
+    </main>
+  </div>
+
+  <!-- Loaded at the end of body — see the comment in examples/os-ticketing/dashboard.html for why. -->
+  <script src="../../components/os-components.js"></script>
+  <script>
+    document.getElementById("reviewAlertIcon").innerHTML = window.osIcon("check", 20);
+
+    const wizard = document.getElementById("shipmentWizard");
+    const originInput = document.getElementById("originInput");
+    const destinationInput = document.getElementById("destinationInput");
+    const customerInput = document.getElementById("customerInput");
+    const trailerSelect = document.getElementById("trailerSelect");
+    const etaInput = document.getElementById("etaInput");
+    const cargoInput = document.getElementById("cargoInput");
+
+    function validateRouteStep() {
+      let valid = true;
+      const originField = document.getElementById("originField");
+      const destinationField = document.getElementById("destinationField");
+      const customerField = document.getElementById("customerField");
+
+      if (!originInput.value.trim()) { originField.setAttribute("error", "Origin is required."); valid = false; }
+      else originField.removeAttribute("error");
+
+      if (!destinationInput.value.trim()) { destinationField.setAttribute("error", "Destination is required."); valid = false; }
+      else destinationField.removeAttribute("error");
+
+      if (!customerInput.value.trim()) { customerField.setAttribute("error", "Customer is required."); valid = false; }
+      else customerField.removeAttribute("error");
+
+      return valid;
+    }
+
+    function validateCargoStep() {
+      let valid = true;
+      const trailerField = document.getElementById("trailerField");
+      const etaField = document.getElementById("etaField");
+      const cargoField = document.getElementById("cargoField");
+
+      if (!trailerSelect.value) { trailerField.setAttribute("error", "Please select a trailer type."); valid = false; }
+      else trailerField.removeAttribute("error");
+
+      if (!etaInput.value.trim()) { etaField.setAttribute("error", "Requested ETA is required."); valid = false; }
+      else etaField.removeAttribute("error");
+
+      if (!cargoInput.value.trim()) { cargoField.setAttribute("error", "Please describe the cargo."); valid = false; }
+      else cargoField.removeAttribute("error");
+
+      return valid;
+    }
+
+    wizard.beforeNext = function (stepIndex) {
+      if (stepIndex === 0) return validateRouteStep();
+      if (stepIndex === 1) return validateCargoStep();
+      return true;
+    };
+
+    wizard.addEventListener("os-wizard-change", (e) => {
+      if (e.detail.index === 2) {
+        document.getElementById("reviewOrigin").textContent = originInput.value || "—";
+        document.getElementById("reviewDestination").textContent = destinationInput.value || "—";
+        document.getElementById("reviewCustomer").textContent = customerInput.value || "—";
+        document.getElementById("reviewTrailer").textContent = trailerSelect.value || "—";
+        document.getElementById("reviewCargo").textContent = cargoInput.value || "—";
+      }
+    });
+
+    wizard.addEventListener("os-wizard-submit", () => {
+      // Demo-only: no backend, so we just simulate a create call and
+      // return to the dashboard, same pattern as examples/os-ticketing.
+      window.location.href = "dashboard.html";
+    });
+  </script>
+</body>
+</html>

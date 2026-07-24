@@ -112,7 +112,7 @@ a { color: inherit; }
 
 os-sidebar-nav, os-card, os-kpi-card, os-data-table, os-status-timeline,
 os-empty-state, os-wizard-stepper, os-tabs, os-form-field, os-chart-donut,
-os-search-filter-bar, os-ai-sidebar, os-floorplan-viewer { display: block; }
+os-chart-bar, os-search-filter-bar, os-ai-sidebar, os-floorplan-viewer { display: block; }
 
 os-status-badge { display: inline-flex; }
 
@@ -505,6 +505,27 @@ os-status-badge { display: inline-flex; }
 .status-dot.error { background: var(--color-error); box-shadow: 0 0 6px var(--color-error); }
 .status-dot.info { background: var(--color-info); box-shadow: 0 0 6px var(--color-info); }
 .status-dot.neutral { background: var(--color-neutral-5); }
+
+/* ========================================
+   METER — at-a-glance level indicator (e.g. a sensor reading approaching
+   a limit). Pure CSS, no custom element: unlike os-chart-donut this has
+   no history/segments to compute, just a current value against zones, so
+   it's a Tier 2 primitive (see CLAUDE.md "Primitives") rather than a new
+   os-* component. Set `.meter-fill`'s width inline per reading, and pick
+   the safe/warning/danger class from where that value sits vs. its limit.
+   ======================================== */
+
+.meter { display: flex; flex-direction: column; gap: var(--space-xs); }
+.meter-label { display: flex; justify-content: space-between; font-size: var(--font-size-xs); color: var(--color-neutral-7); }
+.meter-value { font-weight: 600; }
+.meter-value.safe { color: var(--color-success); }
+.meter-value.warning { color: var(--color-warning); }
+.meter-value.danger { color: var(--color-error); }
+.meter-track { position: relative; height: 8px; border-radius: var(--border-radius-rounded); background: var(--color-neutral-3); overflow: hidden; }
+.meter-fill { position: absolute; top: 0; left: 0; height: 100%; border-radius: var(--border-radius-rounded); transition: width 0.3s ease; }
+.meter-fill.safe { background: var(--color-success); }
+.meter-fill.warning { background: var(--color-warning); }
+.meter-fill.danger { background: var(--color-error); }
 
 /* ========================================
    ALERT

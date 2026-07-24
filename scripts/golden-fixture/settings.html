@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Settings | Harborline Logistics</title>
+<!--
+  Golden fixture, 4th screen: notification preferences. Directly from the
+  transcript: "that's really just a settings screen, like, three or four
+  toggles, nothing complicated" — a Tier 2 primitive composition
+  (.toggle/.toggle-switch, .checkbox), not a new component.
+-->
+<link rel="stylesheet" href="../../components/tokens.css">
+</head>
+<body>
+  <div class="layout">
+
+    <os-sidebar-nav active="settings" logo="../../components/os_logo_reversed.png" brand="Harborline Logistics" home-href="dashboard.html">
+      <a href="dashboard.html" data-nav="dashboard" data-icon="grid">Dashboard</a>
+      <a href="dashboard.html" data-nav="shipments" data-icon="ticket">Shipments</a>
+      <a href="#" data-nav="live-map" data-icon="briefcase" data-disabled="true">Live Map</a>
+      <a href="settings.html" data-nav="settings" data-icon="settings">Settings</a>
+    </os-sidebar-nav>
+
+    <main class="main-content">
+      <header class="header">
+        <div class="header-left">
+          <div>
+            <h1 class="header-title">Notification Preferences</h1>
+            <p class="header-subtitle">How you want to hear about flagged exceptions</p>
+          </div>
+        </div>
+      </header>
+
+      <div class="page">
+        <os-card heading="Alerts">
+          <div class="form-group">
+            <label class="toggle">
+              <input type="checkbox" id="smsToggle" checked>
+              <span class="toggle-switch"></span>
+              <span class="toggle-label">Text me the moment a load is flagged as an exception</span>
+            </label>
+          </div>
+          <div class="form-group">
+            <label class="toggle">
+              <input type="checkbox" id="emailToggle" checked>
+              <span class="toggle-switch"></span>
+              <span class="toggle-label">Email me a daily digest of anything flagged</span>
+            </label>
+          </div>
+          <div class="form-group">
+            <label class="toggle">
+              <input type="checkbox" id="delayToggle">
+              <span class="toggle-switch"></span>
+              <span class="toggle-label">Also notify me for delays that haven't become exceptions yet</span>
+            </label>
+          </div>
+          <div class="form-group" style="margin-bottom: 0;">
+            <label class="checkbox">
+              <input type="checkbox" id="reeferToggle" checked>
+              <span>Always notify me for reefer temperature warnings, regardless of the settings above</span>
+            </label>
+          </div>
+        </os-card>
+      </div>
+    </main>
+  </div>
+
+  <!-- Loaded at the end of body — see the comment in examples/os-ticketing/dashboard.html for why. -->
+  <script src="../../components/os-components.js"></script>
+</body>
+</html>

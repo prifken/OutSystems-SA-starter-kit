@@ -46,6 +46,15 @@ Tabs need no tagging — `os-tabs` already renders `[data-tab-target]`
 automatically. See `examples/os-ticketing/ticket-detail.html` or
 `pocs/ford/supplier-detail.html` for the pattern in use.
 
+## Golden fixture (regression testing)
+
+`golden-fixture/` is a committed, tracked prototype these scripts run
+against on every PR that touches `components/` (see the CI workflow in
+`.github/workflows/`). Unlike `pocs/`, it's not gitignored — it's the
+thing that answers "did this library change break something?" See
+`golden-fixture/README.md` for what it is and why it was built the way
+it was.
+
 ## Wiring `scan-secrets.js` as a pre-commit gate (optional, not done automatically)
 
 ```

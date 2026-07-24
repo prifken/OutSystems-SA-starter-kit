@@ -1,0 +1,75 @@
+name: Golden Fixture Checks
+
+# Runs lint-poc.js + verify-poc.js (scripts/README.md) against both the
+# committed regression fixture (scripts/golden-fixture/README.md) and the
+# flagship reference example (examples/os-ticketing/ — the file CLAUDE.md
+# tells every SA to copy first), on every change to the shared component
+# library OR either of those two prototypes. A components/ edit that
+# breaks a real prototype fails here instead of surfacing in someone's
+# client build; a change to the reference example itself gets the same
+# gate, not just a manual check. Path-filtered on purpose, since these
+# checks are only meaningful when one of these actually changed — see
+# scan-secrets.yml for the check that runs on every PR regardless.
+
+on:
+  pull_request:
+    paths:
+      - "components/**"
+      - "scripts/**"
+      - "examples/**"
+  push:
+    branches: [main]
+    paths:
+      - "components/**"
+      - "scripts/**"
+      - "examples/**"
+
+jobs:
+  golden-fixture:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install QA script dependencies
+        working-directory: scripts
+        run: npm ci
+
+      - name: Install Playwright's Chromium
+        working-directory: scripts
+        run: npx playwright install --with-deps chromium
+
+      - name: Lint golden fixture
+        working-directory: scripts
+        run: node lint-poc.js golden-fixture
+
+      - name: Verify golden fixture (screenshots + JS error check)
+        working-directory: scripts
+        run: node verify-poc.js golden-fixture
+
+      - name: Lint reference example
+        working-directory: scripts
+        run: node lint-poc.js ../examples/os-ticketing
+
+      - name: Verify reference example (screenshots + JS error check)
+        working-directory: scripts
+        run: node verify-poc.js ../examples/os-ticketing
+
+      - name: Upload fixture screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: golden-fixture-screenshots
+          path: scripts/golden-fixture/_verify-output/
+          retention-days: 14
+
+      - name: Upload reference example screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: reference-example-screenshots
+          path: examples/os-ticketing/_verify-output/
+          retention-days: 14
