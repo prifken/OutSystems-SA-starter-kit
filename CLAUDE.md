@@ -71,6 +71,7 @@ every piece of it.
 | `<os-search-filter-bar>` | Search input + optional extra filters | attr: `placeholder`; event: `os-search`; children render as extra filters |
 | `<os-empty-state>` | Placeholder for empty content | attrs: `icon`, `heading`, `text`, `action-label`, `action-href` |
 | `<os-chart-donut>` | Donut chart, rendered via vendored Highcharts (OutSystems' supported charting library) | prop: `data` ([{label,value,color}]); attrs: `center-label`, `center-sub`, `size`, `series-name` |
+| `<os-chart-bar>` | Bar/column chart for comparing a value across categories, also via Highcharts | prop: `data` ([{label,value,color}]); attrs: `height`, `horizontal`, `series-name`, `x-axis-label`, `y-axis-label` |
 
 Full implementation details and inline comments live in `os-components.js`
 itself — read the top-of-file comment block for each component before
@@ -258,15 +259,17 @@ is what the team actually reviews and benefits from.
 - No ODC Studio / Mentor / OML generation — pure HTML/CSS/JS prototypes only
 - No client registry, no CRM sync, no transcript processing
 - No build tooling (npm, bundlers, TypeScript) — plain files, open in browser
-- No CDN dependencies — `components/highcharts.js` (used by `<os-chart-donut>`)
-  is vendored locally, not loaded from `code.highcharts.com`, so a
-  prototype still opens with zero live network requests. Icons are still
-  inlined as JS strings for the same reason.
+- No CDN dependencies — `components/highcharts.js` (used by
+  `<os-chart-donut>` and `<os-chart-bar>`) is vendored locally, not
+  loaded from `code.highcharts.com`, so a prototype still opens with
+  zero live network requests. Icons are still inlined as JS strings for
+  the same reason.
 
 ## Charting: Highcharts, Not Hand-Rolled
 
-`<os-chart-donut>` renders via **Highcharts** — OutSystems' supported
-charting library — not custom SVG. The library file lives at
+`<os-chart-donut>` and `<os-chart-bar>` render via **Highcharts** —
+OutSystems' supported charting library — not custom SVG. The library
+file lives at
 `components/highcharts.js` (vendored via npm, not a CDN `<script>` — see
 "No CDN dependencies" above) and must be loaded with a `<script>` tag
 **before** `os-components.js`, same script-placement rule as everything
@@ -283,3 +286,35 @@ has the license terms; confirm your organization's actual Highcharts
 agreement covers the way you're using it (a client demo, an internal
 build, etc.) before treating this as settled — it isn't something this
 kit can decide on your behalf.
+
+## Rule: Dashboards Need a Chart, Not Just KPIs
+
+A row of `<os-kpi-card>`s is not a complete dashboard screen. Any screen
+built around a KPI row must also include **at least one Highcharts chart**
+(`<os-chart-donut>`, `<os-chart-bar>`, or a new chart component if neither
+fits — see "Charting: Highcharts, Not Hand-Rolled" above) — numbers alone
+read as a spreadsheet with styling, not a dashboard.
+
+Don't default to the same chart type every time. Pick it from what the
+requirements actually support, the same way you'd pick a component or
+primitive:
+
+- A whole broken into parts (statuses, categories) → `<os-chart-donut>`
+- Comparing a value across people/categories (workload per rep, volume
+  per region) → `<os-chart-bar>`
+- Change over time (a trend a KPI's `trend`/`trend-value` already implies)
+  → a line/area chart (add `<os-chart-line>` following the same pattern
+  if a prototype needs one — it doesn't exist yet)
+
+Use more than one chart only when the requirements clearly state or
+imply more than one distinct visual need — e.g. both "how many of each
+status" and "how is each rep doing" are real, different questions.
+Adding charts nobody asked for clutters the screen; the goal is one
+well-chosen visualization that earns its space, not decoration.
+
+`scripts/golden-fixture/dashboard.html` demonstrates this: its donut
+chart answers "how many loads of each status" and its bar chart answers
+"how is each dispatcher's workload distributed" — both real questions the
+transcript actually raises (Dana asks about status breakdowns and
+repeatedly frames the dashboard around "my dispatch team"), not
+decoration added to fill space.

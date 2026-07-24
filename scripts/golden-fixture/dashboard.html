@@ -68,17 +68,32 @@
             <os-data-table id="shipmentsTable" row-href-template="shipment-detail.html?id={id}" clickable empty-text="No shipments match your filters."></os-data-table>
           </os-card>
 
-          <!-- Status breakdown + a plain-primitive legend (Tier 2: .badge-*
-               used directly, not through <os-status-badge>, since this is a
-               static color key rather than a per-row data value). -->
-          <os-card heading="Active Load Status">
-            <os-chart-donut id="statusDonut" center-label="47" center-sub="Active Loads"></os-chart-donut>
-            <div class="flex mb-s" style="gap: var(--space-s); flex-wrap: wrap; justify-content: center; margin-top: var(--space-base);">
-              <span class="badge badge-success">On Time</span>
-              <span class="badge badge-warning">Delayed</span>
-              <span class="badge badge-error">Exception</span>
-            </div>
-          </os-card>
+          <!-- Two stacked charts, per CLAUDE.md "Rule: Dashboards Need a
+               Chart, Not Just KPIs" — two distinct real questions from the
+               transcript, not decoration: "how many loads of each status"
+               (a whole broken into parts → donut) and "how is each
+               dispatcher's workload distributed" (comparing across
+               categories → bar), matching Dana's repeated framing of the
+               dashboard around "my dispatch team." -->
+          <div class="flex" style="flex-direction: column; gap: var(--space-base);">
+
+            <!-- Status breakdown + a plain-primitive legend (Tier 2: .badge-*
+                 used directly, not through <os-status-badge>, since this is a
+                 static color key rather than a per-row data value). -->
+            <os-card heading="Active Load Status">
+              <os-chart-donut id="statusDonut" center-label="47" center-sub="Active Loads"></os-chart-donut>
+              <div class="flex mb-s" style="gap: var(--space-s); flex-wrap: wrap; justify-content: center; margin-top: var(--space-base);">
+                <span class="badge badge-success">On Time</span>
+                <span class="badge badge-warning">Delayed</span>
+                <span class="badge badge-error">Exception</span>
+              </div>
+            </os-card>
+
+            <os-card heading="Active Loads by Dispatcher">
+              <os-chart-bar id="dispatcherBar" height="180" y-axis-label="Loads"></os-chart-bar>
+            </os-card>
+
+          </div>
         </div>
 
       </div>
@@ -138,6 +153,16 @@
       { label: "Delayed", value: 8, color: "#e9a100" },
       { label: "Exception", value: 5, color: "#dc2020" }
     ];
+
+    // Reuses the same SHIPMENTS array + dispatcher colors already defined
+    // above for the table's avatars — not a separate invented dataset.
+    const loadsByDispatcher = {};
+    SHIPMENTS.forEach((s) => {
+      const key = s.dispatcher.name;
+      if (!loadsByDispatcher[key]) loadsByDispatcher[key] = { label: key, value: 0, color: s.dispatcher.color };
+      loadsByDispatcher[key].value += 1;
+    });
+    document.getElementById("dispatcherBar").data = Object.values(loadsByDispatcher);
   </script>
 </body>
 </html>

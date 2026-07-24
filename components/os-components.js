@@ -848,6 +848,74 @@
     }
   }
 
+  /* ============================================================
+     os-chart-bar
+     Property: data [{label, value, color}]
+     Attributes: height (default 220), horizontal ("true" for a
+     horizontal bar chart, default is a vertical column chart),
+     series-name, x-axis-label, y-axis-label
+
+     Renders via Highcharts, same as os-chart-donut — see the rule in
+     CLAUDE.md "Charting: Highcharts, Not Hand-Rolled". For comparing a
+     value across categories (workload per rep, volume per region), not
+     for a whole-broken-into-parts breakdown — use os-chart-donut for
+     that. See CLAUDE.md "Rule: Dashboards Need a Chart, Not Just KPIs"
+     for when to reach for which.
+     ============================================================ */
+  let chartBarInstanceCounter = 0;
+
+  class OsChartBar extends HTMLElement {
+    connectedCallback() { if (!this._data) this._data = []; this.render(); }
+    set data(val) { this._data = val || []; this.render(); }
+    get data() { return this._data || []; }
+
+    render() {
+      const data = this._data || [];
+      const height = parseInt(this.getAttribute("height") || "220", 10);
+      const horizontal = this.getAttribute("horizontal") === "true";
+      const containerId = "os-chart-bar-" + (chartBarInstanceCounter += 1);
+
+      this.innerHTML = '<div id="' + containerId + '" style="width:100%;height:' + height + 'px;"></div>';
+
+      if (!window.Highcharts) {
+        document.getElementById(containerId).innerHTML =
+          '<div class="text-error" style="font-size:var(--font-size-xs);padding:var(--space-s);">' +
+          "Highcharts not loaded — add &lt;script src=\".../components/highcharts.js\"&gt; before os-components.js.</div>";
+        return;
+      }
+
+      window.Highcharts.chart(containerId, {
+        chart: { type: horizontal ? "bar" : "column", height: height, backgroundColor: "transparent", animation: false },
+        title: { text: null },
+        credits: { enabled: true },
+        legend: { enabled: false },
+        xAxis: {
+          categories: data.map((d) => d.label),
+          title: { text: this.getAttribute("x-axis-label") || null },
+          labels: { style: { fontSize: "12px" } },
+          lineColor: getComputedStyle(document.body).getPropertyValue("--color-neutral-4") || "#dee2e6"
+        },
+        yAxis: {
+          title: { text: this.getAttribute("y-axis-label") || null },
+          gridLineColor: getComputedStyle(document.body).getPropertyValue("--color-neutral-3") || "#e9ecef"
+        },
+        tooltip: { pointFormat: "<b>{point.y}</b>" },
+        plotOptions: {
+          series: { animation: false, borderRadius: 3 },
+          column: { pointPadding: 0.1, groupPadding: 0.1 },
+          bar: { pointPadding: 0.1, groupPadding: 0.1 }
+        },
+        series: [
+          {
+            name: this.getAttribute("series-name") || "Value",
+            data: data.map((d) => ({ y: d.value, color: d.color })),
+            colorByPoint: !data.some((d) => d.color)
+          }
+        ]
+      });
+    }
+  }
+
   /* ---------------------------------------------------------- */
   customElements.define("os-sidebar-nav", OsSidebarNav);
   customElements.define("os-kpi-card", OsKpiCard);
@@ -863,6 +931,7 @@
   customElements.define("os-search-filter-bar", OsSearchFilterBar);
   customElements.define("os-empty-state", OsEmptyState);
   customElements.define("os-chart-donut", OsChartDonut);
+  customElements.define("os-chart-bar", OsChartBar);
 
   // Expose the icon helper so page-level scripts can reuse the same set
   // (e.g. for a header button icon) without duplicating SVG markup.
