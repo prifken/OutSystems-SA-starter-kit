@@ -20,6 +20,7 @@ npm install
 | `check-logo.js` | Eyeballing a screenshot to guess if a logo will be legible | `node check-logo.js path/to/logo.png` |
 | `lint-poc.js` | Manually re-reading every screen for component/link/consistency drift | `node lint-poc.js path/to/pocs/some-client` |
 | `verify-poc.js` | Hand-writing a fresh Playwright script per build to click through tabs/modals | `node verify-poc.js path/to/pocs/some-client` |
+| `vendor-for-deploy.js` | Manually copying shared files + rewriting `../../` paths by hand before a standalone static-host deploy | `node vendor-for-deploy.js path/to/pocs/some-client` |
 | `scan-secrets.js` | Hoping nobody commits a credential | `node scan-secrets.js` (defaults to whole repo) |
 
 ## Why these exist
@@ -45,6 +46,27 @@ slide-in panel), mark the trigger element with `data-verify-open="short-name"`.
 Tabs need no tagging — `os-tabs` already renders `[data-tab-target]`
 automatically. See `examples/os-ticketing/ticket-detail.html` or
 `pocs/ford/supplier-detail.html` for the pattern in use.
+
+## Deploying a POC standalone (Netlify, etc.)
+
+A prototype's screens normally link the shared `../../components/tokens.css`
+and `../../components/os-components.js` — correct for local development,
+wrong for a static-host deploy that uploads only the POC's own folder
+(`../../` resolves outside the deployed site, so *everything* 404s,
+silently, including `os-components.js` itself — meaning no CSS and no
+custom elements render at all). Before deploying a POC folder standalone:
+
+```
+node vendor-for-deploy.js path/to/pocs/some-client
+node lint-poc.js path/to/pocs/some-client   # confirms via its own check
+```
+
+`vendor-for-deploy.js` discovers every `../../components/<file>` the POC
+actually references (not a hardcoded list — it'll pick up a logo, an
+icon, whatever's actually used), copies each into the POC's own
+`components/` subfolder, rewrites every reference to the local path, and
+fixes `os-sidebar-nav`'s `powered-by-logo` default the same way. Safe to
+re-run — copies overwrite, rewrites are idempotent.
 
 ## Golden fixture (regression testing)
 

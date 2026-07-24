@@ -67,6 +67,26 @@ type with its state makes the column impossible to sort, sum, or reason
 about, and it's exactly the kind of thing that looks fine in a mockup and
 breaks the moment someone wires it to a real API response.
 
+## Rule #3: Real Characters in Component Properties, Not HTML Entities
+
+Every `os-*` component that renders text passed through a JS *property*
+(`os-status-timeline`'s `items`, `os-ai-sidebar`'s `insight`/
+`recommendations`/`activityLog`, `os-data-table`'s `rows`, etc.) escapes
+that string for safety before inserting it into the DOM. That means an
+HTML entity like `&mdash;` or `&middot;` in a string assigned to one of
+these properties does **not** render as an em dash or middot — it
+double-escapes and shows up as the literal text `&mdash;` on screen. Use
+the real Unicode character instead: `—`, `·`, `'`, not the entity.
+
+This only bites on *properties* (`el.items = [...]`, `el.data = [...]`).
+Entities are fine, even expected, in the page's own HTML markup — a
+`&middot;` written directly in a `<p>` tag, or inside a raw HTML string
+you build yourself and assign via `.innerHTML`, gets parsed by the
+browser normally. The distinction is whether the string passes through a
+component's internal escaping (properties do) or you're writing raw HTML
+yourself (entities work there). When unsure which case you're in, use the
+real character — it's correct either way.
+
 ## The Component Library
 
 | Element | Purpose | Config |
@@ -234,23 +254,25 @@ the prototype's own folder, not the rest of the repo — `../../` then
 points outside the deployed site entirely, and every asset 404s (this
 kit found out the hard way: it silently breaks *both* the CSS and every
 custom element, since `os-components.js` itself 404s too). Before
-deploying a prototype standalone:
+deploying a prototype standalone, run:
 
-1. Copy `components/tokens.css`, `components/os-components.js`, and
-   `components/os_logo.png` into a `components/` subfolder inside the
-   prototype's own folder.
-2. Change every screen's `../../components/...` references to
-   `components/...` (one level, not two).
-3. `os-sidebar-nav`'s `powered-by-logo` attribute defaults to
-   `../../components/os_logo.png` — it needs the same fix. Pass
-   `powered-by-logo="components/os_logo.png"` explicitly on every
-   `<os-sidebar-nav>` tag; don't rely on the default once the shared
-   path no longer applies.
-4. Verify before handing off the deploy: `curl` (or open directly) every
-   asset path the deployed folder needs and confirm each one 200s —
-   don't just eyeball the rendered page, since a missing CSS file can
-   look "close enough" at a glance while a missing JS file silently
-   breaks every `<os-*>` tag on the page.
+```
+node scripts/vendor-for-deploy.js path/to/pocs/some-client
+```
+
+This automates the whole checklist: copies every `components/*` file the
+prototype actually references (plus `tokens.css`/`os-components.js`/
+`os_logo.png` unconditionally) into a `components/` subfolder inside the
+prototype, rewrites every screen's `../../components/...` reference to
+`components/...`, adds an explicit `powered-by-logo="components/os_logo.png"`
+to any `<os-sidebar-nav>` missing it (its default is
+`../../components/os_logo.png` — same problem, different attribute), and
+reports any `../../` reference it couldn't resolve. Follow it with
+`node scripts/lint-poc.js path/to/pocs/some-client` — its "standalone-deploy
+readiness" check confirms the same thing independently — and then actually
+open the deployed URL and check the browser console; a vendored file that
+silently failed to copy is still a break the scripts above can't see from
+inside the repo.
 
 ## Script Placement — Read This Before Moving Anything
 

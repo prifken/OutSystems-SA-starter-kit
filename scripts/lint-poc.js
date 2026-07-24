@@ -14,11 +14,21 @@
         END of <body>, after all markup and before any inline
         <script> that touches a component — the "Script Placement"
         rule. A violation here means components render empty.
-     3. Every internal href resolves to a real file (or is "#",
-        which is allowed for decorative/unwired links).
+     3. Every internal href/src (links, stylesheets, scripts, images)
+        resolves to a real file (or is "#", which is allowed for
+        decorative/unwired links) — not just that the right filename
+        appears in the markup, but that the path actually resolves
+        from that file's location. Catches a bad relative path after
+        moving/vendoring files, not just a typo'd href.
      4. The <os-sidebar-nav> markup is identical across every screen
         in the folder except the `active` attribute — screens that
         drift here break "sidebar identical across all pages."
+     5. If this folder has its own vendored components/os-components.js
+        (see vendor-for-deploy.js), no screen still references the
+        shared ../../components/... path — a leftover reference there
+        will 404 on a standalone static-host deploy even though local
+        dev (opening the file from inside the full repo) wouldn't
+        catch it, since ../../ still resolves to something there.
 
    This does NOT check copy quality, layout choices, or logo
    legibility — see check-logo.js for the logo case, and use your
@@ -117,18 +127,18 @@ for (const file of htmlFiles) {
     }
   }
 
-  // --- Check 3: internal links resolve ---
-  const hrefs = [...html.matchAll(/href=["']([^"']+)["']/g)].map((m) => m[1]);
+  // --- Check 3: internal links/scripts/stylesheets/images resolve ---
+  const refs = [...html.matchAll(/(?:href|src)=["']([^"']+)["']/g)].map((m) => m[1]);
   const badLinks = [];
-  for (const href of hrefs) {
-    if (href === "#" || /^https?:\/\//.test(href) || href.startsWith("mailto:")) continue;
-    const targetPath = path.resolve(path.dirname(file), href.split("?")[0].split("#")[0]);
-    if (!fs.existsSync(targetPath)) badLinks.push(href);
+  for (const ref of refs) {
+    if (ref === "#" || /^(https?:|mailto:|data:)/.test(ref)) continue;
+    const targetPath = path.resolve(path.dirname(file), ref.split("?")[0].split("#")[0]);
+    if (!fs.existsSync(targetPath)) badLinks.push(ref);
   }
   if (badLinks.length) {
-    fail(`Broken internal link(s): ${badLinks.join(", ")}`);
+    fail(`Broken internal reference(s): ${badLinks.join(", ")}`);
   } else {
-    ok(`All ${hrefs.length} href(s) resolve or are intentionally "#".`);
+    ok(`All ${refs.length} href/src reference(s) resolve or are intentionally "#".`);
   }
 
   // --- Check 4 setup: capture sidebar markup for cross-file comparison ---
@@ -151,6 +161,26 @@ if (files.length < 2) {
     fail(`Sidebar markup differs (beyond \`active\`) in: ${drifted.join(", ")} — compare against ${files[0]}.`);
   } else {
     ok(`Sidebar markup is identical (modulo \`active\`) across all ${files.length} screens.`);
+  }
+}
+
+// --- Check 5: standalone-deploy readiness (only applies once this
+// folder has vendored its own components/ — see vendor-for-deploy.js) ---
+console.log(`\nCross-file: standalone-deploy readiness`);
+const hasVendoredComponents = fs.existsSync(path.join(targetDir, "components", "os-components.js"));
+if (!hasVendoredComponents) {
+  console.log("  (no vendored components/ folder found — this POC uses the shared ../../components/ path, which is correct for local development. Run vendor-for-deploy.js before deploying this folder standalone to a static host.)");
+} else {
+  const leftoverRefs = [];
+  for (const file of htmlFiles) {
+    const html = fs.readFileSync(file, "utf8");
+    const matches = [...new Set([...html.matchAll(/\.\.\/\.\.\/[^"'\s)]+/g)].map((m) => m[0]))];
+    if (matches.length) leftoverRefs.push(`${path.relative(repoRoot, file)}: ${matches.join(", ")}`);
+  }
+  if (leftoverRefs.length) {
+    fail(`This folder has vendored its own components/ but still references the shared path — will 404 on a standalone deploy:\n        ${leftoverRefs.join("\n        ")}\n        Run: node vendor-for-deploy.js ${path.relative(process.cwd(), targetDir)}`);
+  } else {
+    ok("Vendored components/ found and no screen references the shared ../../components/ path — safe to deploy this folder standalone.");
   }
 }
 
