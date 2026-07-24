@@ -53,6 +53,18 @@ All three should pass. `verify-poc.js` writes screenshots to
 `components/` change, don't just trust a clean exit code, same caveat as
 in `scripts/README.md`.
 
+## Enforcement on PRs
+
+`.github/pull_request_template.md` embeds the full 20-item punch list
+this fixture and its checks feed into — that's what actually shows up
+when an SA opens a PR against this repo. Items 1-6 are what
+`.github/workflows/golden-fixture.yml` runs automatically; the rest
+(Rule #1 conformance, visual review, the brand stress test, docs) are
+things a reviewer confirms by eye. See `BRAND_STRESS_TEST.md` in this
+folder for the brand-adaptation half specifically — it's agent-assisted,
+not a script, and deliberately uses a different random real company each
+time rather than one fixed example.
+
 ## Updating this fixture
 
 If `components/` gains a new component or primitive and you want this
