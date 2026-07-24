@@ -79,13 +79,22 @@ for (const file of htmlFiles) {
   }
 
   // --- Check 2: tokens.css linked, os-components.js at end of body ---
-  if (!/href=["'][^"']*tokens\.css["']/.test(html)) {
+  // Exception: a bare index.html redirect stub (see CLAUDE.md "Every
+  // Prototype Needs an index.html") intentionally has neither — it's
+  // just a <meta refresh> to the real first screen, not a component
+  // screen itself.
+  const isRedirectStub = path.basename(file) === "index.html" && /<meta[^>]*http-equiv=["']refresh["']/i.test(html);
+  if (isRedirectStub) {
+    ok("index.html redirect stub — tokens.css/os-components.js checks don't apply.");
+  } else if (!/href=["'][^"']*tokens\.css["']/.test(html)) {
     fail("No <link> to tokens.css found.");
   } else {
     ok("tokens.css is linked.");
   }
   const scriptTagMatch = html.match(/<script[^>]*src=["']([^"']*os-components\.js)["'][^>]*><\/script>/);
-  if (!scriptTagMatch) {
+  if (isRedirectStub) {
+    // already reported above; nothing else to check on this file
+  } else if (!scriptTagMatch) {
     fail("No <script src=\".../os-components.js\"> found.");
   } else {
     const scriptIndex = html.indexOf(scriptTagMatch[0]);
