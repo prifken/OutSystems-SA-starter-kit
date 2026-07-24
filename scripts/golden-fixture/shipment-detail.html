@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HL-4821 | Harborline Logistics</title>
+<!--
+  Golden fixture, screen 2 of 3: shipment detail. Demonstrates os-tabs,
+  os-status-timeline, os-empty-state, os-modal, os-ai-sidebar (all Tier 1),
+  plus two Tier 2 primitive compositions the transcript called for but
+  that don't warrant a whole new component:
+    - the exception accept/dispute panel (.alert-warning + .btn-success/
+      .btn-error + a plain textarea) — Dana's own words were "don't
+      overbuild it," so this stays inline, composed markup, not a new
+      os-* element.
+    - the reefer temperature indicator (.meter, added to tokens.css for
+      this fixture) — a single current reading against a limit, no
+      history to chart, so it's a CSS-only primitive rather than a new
+      custom element. See the comment above .meter in tokens.css.
+-->
+<link rel="stylesheet" href="../../components/tokens.css">
+</head>
+<body>
+  <div class="layout">
+
+    <os-sidebar-nav active="shipments" logo="../../components/os_logo_reversed.png" brand="Harborline Logistics" home-href="dashboard.html">
+      <a href="dashboard.html" data-nav="dashboard" data-icon="grid">Dashboard</a>
+      <a href="dashboard.html" data-nav="shipments" data-icon="ticket">Shipments</a>
+      <a href="#" data-nav="live-map" data-icon="briefcase" data-disabled="true">Live Map</a>
+      <a href="settings.html" data-nav="settings" data-icon="settings">Settings</a>
+    </os-sidebar-nav>
+
+    <main class="main-content">
+      <header class="header" style="flex-direction: column; align-items: stretch; gap: var(--space-base); padding-bottom: 0;">
+        <div class="flex justify-between items-center" style="width: 100%;">
+          <div>
+            <nav class="breadcrumb">
+              <a href="dashboard.html">Dashboard</a>
+              <span class="breadcrumb-separator">&rsaquo;</span>
+              <a href="dashboard.html">Shipments</a>
+              <span class="breadcrumb-separator">&rsaquo;</span>
+              <span>HL-4821</span>
+            </nav>
+            <div class="flex items-center gap-s">
+              <h1 class="header-title">Laredo, TX &rarr; Chicago, IL</h1>
+              <os-status-badge id="shipmentStatusBadge" variant="error" label="Exception"></os-status-badge>
+              <span class="badge badge-info">Reefer</span>
+            </div>
+            <p class="header-meta">HL-4821 &middot; Meridian Foods &middot; Dispatcher: Carlos Reyes</p>
+          </div>
+          <div class="header-actions">
+            <button class="btn btn-secondary" id="cancelBtn" data-verify-open="cancel-modal">Cancel Shipment</button>
+            <button class="btn btn-ai" id="aiToggleBtn" data-verify-open="ai-sidebar">AI Assistant</button>
+          </div>
+        </div>
+      </header>
+
+      <div class="page">
+        <os-tabs active="overview">
+
+          <div data-tab="overview" data-tab-label="Overview">
+            <os-card heading="Shipment Information" class="mb-base">
+              <div class="form-row">
+                <div class="form-group">
+                  <span class="form-label">Customer</span>
+                  <span class="form-value emphasis">Meridian Foods</span>
+                </div>
+                <div class="form-group">
+                  <span class="form-label">Trailer Type</span>
+                  <span class="form-value">Reefer (Refrigerated)</span>
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <span class="form-label">Dispatcher</span>
+                  <span class="form-value">
+                    <div class="user-cell">
+                      <div class="avatar avatar-sm" style="background:#1068eb;">CR</div>
+                      <span>Carlos Reyes</span>
+                    </div>
+                  </span>
+                </div>
+                <div class="form-group">
+                  <span class="form-label">ETA</span>
+                  <span class="form-value text-warning">Today, 6:00 PM</span>
+                </div>
+              </div>
+            </os-card>
+
+            <!-- Reefer temperature — Tier 2 .meter primitive. Static reading,
+                 no JS needed; width/zone are set per the current value. -->
+            <os-card heading="Trailer Temperature" class="mb-base">
+              <div class="meter">
+                <div class="meter-label">
+                  <span>Current reading</span>
+                  <span class="meter-value warning">35&deg;F <span class="text-muted">(limit 36&deg;F)</span></span>
+                </div>
+                <div class="meter-track">
+                  <div class="meter-fill warning" style="width: 82%;"></div>
+                </div>
+              </div>
+            </os-card>
+
+            <!-- Exception accept/dispute — Tier 2 composed panel, not a new component. -->
+            <os-card heading="Exception Reported">
+              <div class="alert alert-warning mb-base">
+                <div class="alert-icon" id="exceptionAlertIcon"></div>
+                <div class="alert-content">
+                  <div class="alert-title">Driver flagged a delay at the border crossing</div>
+                  <div class="alert-text">Reported 40 minutes ago by the driver — extended wait at the Laredo scale house. Decide whether Harborline covers the delay or disputes it back to the customer.</div>
+                </div>
+              </div>
+              <div class="form-group">
+                <span class="form-label">Note</span>
+                <textarea class="form-control" id="exceptionNote" placeholder="Why are you accepting or disputing this delay?"></textarea>
+              </div>
+              <div class="form-actions">
+                <button class="btn btn-error" id="disputeBtn">Dispute</button>
+                <button class="btn btn-success" id="acceptBtn">Accept &amp; Cover Delay</button>
+              </div>
+            </os-card>
+          </div>
+
+          <div data-tab="milestones" data-tab-label="Milestones">
+            <os-card heading="Load History">
+              <os-status-timeline id="shipmentTimeline"></os-status-timeline>
+            </os-card>
+          </div>
+
+          <div data-tab="documents" data-tab-label="Documents" data-tab-badge="0">
+            <os-card>
+              <os-empty-state icon="file-text" heading="No Documents Yet" text="BOLs, customs forms, and other paperwork for this load will show up here once uploaded."></os-empty-state>
+            </os-card>
+          </div>
+
+        </os-tabs>
+      </div>
+    </main>
+
+    <!-- Cancel confirmation modal -->
+    <os-modal id="cancelModal" modal-title="Cancel this shipment?" confirm-label="Cancel Shipment" cancel-label="Keep Shipment" variant="error">
+      <p>This will cancel <strong>HL-4821</strong> and notify Meridian Foods and the assigned carrier. This can't be undone from here.</p>
+    </os-modal>
+
+    <!-- AI Assistant sidebar -->
+    <os-ai-sidebar id="aiSidebar" heading="Dispatch Assistant"></os-ai-sidebar>
+  </div>
+
+  <!-- Loaded at the end of body — see the comment in examples/os-ticketing/dashboard.html for why. -->
+  <script src="../../components/os-components.js"></script>
+  <script>
+    document.getElementById("exceptionAlertIcon").innerHTML = window.osIcon("alert-triangle", 20);
+
+    const timeline = document.getElementById("shipmentTimeline");
+    timeline.items = [
+      { title: "Load picked up", user: "Marcus Diallo (Driver)", initials: "MD", color: "#1068eb", date: "Jul 22, 2026 at 6:05 AM", state: "complete" },
+      { title: "Crossed border checkpoint", user: "Marcus Diallo (Driver)", initials: "MD", color: "#1068eb", date: "Jul 22, 2026 at 11:40 AM", state: "complete" },
+      { title: "Delay reported at scale house", user: "Marcus Diallo (Driver)", initials: "MD", color: "#1068eb", date: "Jul 22, 2026 at 1:20 PM", state: "current", note: "Extended wait for secondary inspection — awaiting dispatcher decision." },
+      { title: "Arrived at Chicago yard", state: "pending" },
+      { title: "Delivered to Meridian Foods", state: "pending" }
+    ];
+
+    // AI sidebar content — static demo data, same pattern as examples/os-ticketing.
+    const aiSidebar = document.getElementById("aiSidebar");
+    aiSidebar.insight = "This load's reefer temperature has drifted 1°F from its limit in the last hour, and the border delay is now past the point where the produce's shelf-life window gets tight. Recommend expediting once released.";
+    aiSidebar.recommendations = [
+      { title: "Similar exception, 3 weeks ago", description: "HL-4602 (same lane, same customer) was accepted as a covered delay and delivered on time after expediting." },
+      { title: "Customer notification ready", description: "A heads-up email to Meridian Foods about the possible delay is drafted and ready to send." },
+      { title: "Reefer trending toward limit", description: "Temperature has moved from 33°F to 35°F in the last hour — worth a check-in call with the driver." }
+    ];
+    aiSidebar.activityLog = [
+      { text: "Exception context analyzed", time: "1 min ago" },
+      { text: "Cross-referenced 12 similar past exceptions", time: "1 min ago" },
+      { text: "Draft customer notification generated", time: "just now" }
+    ];
+
+    document.getElementById("aiToggleBtn").addEventListener("click", () => aiSidebar.toggle());
+
+    const cancelModal = document.getElementById("cancelModal");
+    document.getElementById("cancelBtn").addEventListener("click", () => cancelModal.open());
+    cancelModal.addEventListener("os-modal-confirm", () => {
+      document.getElementById("shipmentStatusBadge").setAttribute("variant", "neutral");
+      document.getElementById("shipmentStatusBadge").setAttribute("label", "Cancelled");
+    });
+
+    // Accept/Dispute are demo stubs — in a real POC these would post the
+    // decision + note back to the load record.
+    document.getElementById("acceptBtn").addEventListener("click", () => alert("Demo stub: records \"Accepted\" plus the note, and clears the exception flag."));
+    document.getElementById("disputeBtn").addEventListener("click", () => alert("Demo stub: records \"Disputed\" plus the note, and routes it to the customer."));
+  </script>
+</body>
+</html>

@@ -76,6 +76,42 @@ Full implementation details and inline comments live in `os-components.js`
 itself — read the top-of-file comment block for each component before
 using it for the first time.
 
+## Primitives — The Layer Below the Component Library
+
+The table above is not the only sanctioned building material. `tokens.css`
+also defines plain CSS classes meant to be used directly on ordinary HTML
+elements (`<button>`, `<input>`, `<select>`, `<div>`) — no custom element,
+no JS, no entry in `os-components.js`. These are lower-level than the
+`os-*` components above them: a component like `<os-kpi-card>` is *built
+from* primitives like `.kpi-card`, but plenty of these primitives are also
+meant to be reached for directly, on their own, inside a screen.
+
+| Class(es) | Use on | Purpose |
+|---|---|---|
+| `.btn`, `.btn-primary/secondary/success/error/ai` | `<button>`/`<a>` | Standard action buttons; combine with `.btn-small`/`.btn-large`/`.btn-icon` |
+| `.form-control` | `<input>`/`<select>`/`<textarea>` | Standard field styling; add `.error`/`.success` for validation state |
+| `.checkbox`, `.radio` | wrapper `<label>` around a native input | Standard checkbox/radio row |
+| `.toggle`, `.toggle-switch` | wrapper around a native checkbox input | On/off switch |
+| `.file-upload` | wrapper `<label>` around `<input type="file">` | Drag/drop-styled upload target |
+| `.badge`, `.badge-primary/success/warning/error/info/neutral` | `<span>` | Color-coded pill — same visual as `<os-status-badge>` without the element |
+| `.alert`, `.alert-info/success/warning/error` (+ `.alert-icon`, `.alert-content`, `.alert-title`, `.alert-text`) | `<div>` | Inline banner/callout |
+| `.avatar`, `.avatar-sm/md/lg` | `<div>` | Initials/icon circle |
+| `.meter`, `.meter-track`, `.meter-fill`/`.meter-value` (+ `.safe`/`.warning`/`.danger`) | `<div>` | At-a-glance level indicator for a single current reading against a limit (e.g. a sensor value approaching a threshold) — set `.meter-fill`'s width inline per value; no JS, no history |
+| `.grid-2/3/4`, `.grid-2-1`, `.grid-1-2` | `<div>` | Responsive column layouts (collapse to 1 column under 1200px) |
+| `.text-primary/success/warning/error/muted`, `.mb-s/base/m`, `.flex`, `.items-center`, `.justify-between`, `.gap-s/base` | any element | Small layout/color utilities |
+
+**When to reach for a primitive instead of a component:** if a screen needs
+a small arrangement of standard controls that doesn't recur across
+prototypes as its own named thing — e.g. an inline approve/reject button
+pair next to a comment box, a row of status legend badges, a settings
+toggle — compose it directly from primitives in the screen's HTML. This is
+still "compose, don't invent" (Rule #1): you're combining existing,
+documented classes, not writing new CSS or bespoke markup. Reach for a
+full `os-*` component instead when the thing is a recognizable, reusable
+*unit* (a whole card, a whole table, a whole multi-step flow) — see "How to
+Build a New Prototype" step 5 for what to do when even the primitives
+don't cover a genuinely new, recurring need.
+
 ## How to Build a New Prototype
 
 1. Copy `examples/os-ticketing/` to a new folder — e.g. `pocs/acme-corp/`
