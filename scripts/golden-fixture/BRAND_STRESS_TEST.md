@@ -64,16 +64,24 @@ use case). Two things surfaced that are worth carrying forward as
 standing checks, not just one-off notes:
 
 - **This session's network egress policy blocked fetching jbhunt.com,
-  brandfetch.com, and wikipedia.org directly** (confirmed via
-  `curl $HTTPS_PROXY/__agentproxy/status` — 403, organization policy, not
-  a retry-able failure). Real logo download and direct site-CSS
-  inspection weren't possible from this environment; only third-party
-  color-aggregator sites (which happened to agree across four
-  independent sources) were reachable via web search. **Run this test
-  from an environment with fuller outbound web access when you actually
-  need the logo-legibility half of the check** — an environment that
-  can reach the target company's own domain, not just search results
-  about it.
+  brandfetch.com, and wikipedia.org directly** — and this isn't
+  company-specific: a follow-up test with raw `curl` (bypassing every
+  Claude tool) against four unrelated hosts, including `example.com`,
+  failed identically (`CONNECT tunnel failed, response 403`). That
+  confirms this is a blanket organization egress policy for this session,
+  not something a different fetch tool (Playwright, a browser, anything)
+  would get around — the block happens at the network layer this
+  environment sits behind, before any request reaches any destination.
+  Real logo download and direct site-CSS inspection aren't possible from
+  a session with this policy, full stop; only third-party color-
+  aggregator sites (which happened to agree across four independent
+  sources) were reachable via web search, which appears to run over a
+  separate, unrestricted path. **Run this test from an environment
+  created with a broader network policy when you actually need the
+  logo-legibility half of the check** — see
+  `code.claude.com/docs/en/claude-code-on-the-web` for how that policy is
+  configured — you need one that can reach the target company's own
+  domain, not just search results about it.
 - **A brand's iconic color is not automatically a safe `--color-primary`.**
   J.B. Hunt's real, confirmed brand color is a bright yellow (`#FFDB00`).
   Piped directly into `--color-primary`, it produces white-on-yellow
@@ -84,3 +92,19 @@ standing checks, not just one-off notes:
   it doesn't work. **Always render and look at a real screenshot of the
   primary button before accepting a rebrand — don't approve a color
   override from the hex values alone.**
+
+## A second finding, from adding Highcharts
+
+When `<os-chart-donut>` was rewritten to render via Highcharts instead of
+hand-rolled SVG, the first `verify-poc.js` run after that change produced
+a screenshot showing only a tiny sliver of the donut instead of a full
+ring — looked like a real rendering bug. It wasn't one: Highcharts'
+default ~1s entrance animation means any screenshot taken shortly after
+load (`verify-poc.js` waits 200ms) captures the chart mid-draw. The fix
+was `animation: false` on the chart and its series in `os-components.js`,
+not a screenshot-timing workaround — **a component that finishes
+"rendering" asynchronously after the DOM settles is exactly what
+screenshot-based regression testing can't see past, so animated
+chart/component entrances should default to disabled** in this kit,
+the same way `verify-poc.js` already assumes a fixed short wait is enough
+for everything else on the page.

@@ -70,7 +70,7 @@ every piece of it.
 | `<os-form-field>` | Label + input/select/textarea wrapper with validation states | attrs: `label`, `required`, `hint`, `error`, `success`; wraps a light-DOM control child |
 | `<os-search-filter-bar>` | Search input + optional extra filters | attr: `placeholder`; event: `os-search`; children render as extra filters |
 | `<os-empty-state>` | Placeholder for empty content | attrs: `icon`, `heading`, `text`, `action-label`, `action-href` |
-| `<os-chart-donut>` | Pure-SVG donut chart, no chart library | prop: `data` ([{label,value,color}]); attrs: `center-label`, `center-sub`, `size` |
+| `<os-chart-donut>` | Donut chart, rendered via vendored Highcharts (OutSystems' supported charting library) | prop: `data` ([{label,value,color}]); attrs: `center-label`, `center-sub`, `size`, `series-name` |
 
 Full implementation details and inline comments live in `os-components.js`
 itself — read the top-of-file comment block for each component before
@@ -258,5 +258,28 @@ is what the team actually reviews and benefits from.
 - No ODC Studio / Mentor / OML generation — pure HTML/CSS/JS prototypes only
 - No client registry, no CRM sync, no transcript processing
 - No build tooling (npm, bundlers, TypeScript) — plain files, open in browser
-- No CDN dependencies (charts, icon fonts) — the donut chart is hand-rolled
-  SVG and icons are inlined as JS strings for exactly this reason
+- No CDN dependencies — `components/highcharts.js` (used by `<os-chart-donut>`)
+  is vendored locally, not loaded from `code.highcharts.com`, so a
+  prototype still opens with zero live network requests. Icons are still
+  inlined as JS strings for the same reason.
+
+## Charting: Highcharts, Not Hand-Rolled
+
+`<os-chart-donut>` renders via **Highcharts** — OutSystems' supported
+charting library — not custom SVG. The library file lives at
+`components/highcharts.js` (vendored via npm, not a CDN `<script>` — see
+"No CDN dependencies" above) and must be loaded with a `<script>` tag
+**before** `os-components.js`, same script-placement rule as everything
+else:
+
+```html
+<script src="../../components/highcharts.js"></script>
+<script src="../../components/os-components.js"></script>
+```
+
+If you add a new chart-based component, use Highcharts for it too — don't
+hand-roll a second charting approach. `components/HIGHCHARTS_LICENSE.txt`
+has the license terms; confirm your organization's actual Highcharts
+agreement covers the way you're using it (a client demo, an internal
+build, etc.) before treating this as settled — it isn't something this
+kit can decide on your behalf.
