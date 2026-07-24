@@ -84,8 +84,8 @@ breaks the moment someone wires it to a real API response.
 | `<os-form-field>` | Label + input/select/textarea wrapper with validation states | attrs: `label`, `required`, `hint`, `error`, `success`; wraps a light-DOM control child |
 | `<os-search-filter-bar>` | Search input + optional extra filters | attr: `placeholder`; event: `os-search`; children render as extra filters |
 | `<os-empty-state>` | Placeholder for empty content | attrs: `icon`, `heading`, `text`, `action-label`, `action-href` |
-| `<os-chart-donut>` | Donut chart, rendered via vendored Highcharts (OutSystems' supported charting library) | prop: `data` ([{label,value,color}]); attrs: `center-label`, `center-sub`, `size`, `series-name` |
-| `<os-chart-bar>` | Bar/column chart for comparing a value across categories, also via Highcharts | prop: `data` ([{label,value,color}]); attrs: `height`, `horizontal`, `series-name`, `x-axis-label`, `y-axis-label` |
+| `<os-chart-donut>` | Donut chart, rendered via vendored Highcharts (OutSystems' supported charting library) | prop: `data` ([{label,value,color}]); attrs: `center-label`, `center-sub`, `size`, `series-name`, `hide-credits` (only set once your license confirms it — see "Charting: Highcharts, Not Hand-Rolled") |
+| `<os-chart-bar>` | Bar/column chart for comparing a value across categories, also via Highcharts | prop: `data` ([{label,value,color}]); attrs: `height`, `horizontal`, `series-name`, `x-axis-label`, `y-axis-label`, `hide-credits` (same licensing caveat as os-chart-donut) |
 | `<os-floorplan-viewer>` | Image with overlaid pins/room boxes + synced room list, for any spatial human-in-the-loop review workflow | prop: `rooms` ([{id,label,status,x,y,w,h,sprinklers}], x/y/w/h/sprinkler coords as % of image size); attr: `image`; method: `selectRoom(id)`; event: `os-room-select` |
 
 Full implementation details and inline comments live in `os-components.js`
@@ -371,6 +371,15 @@ has the license terms; confirm your organization's actual Highcharts
 agreement covers the way you're using it (a client demo, an internal
 build, etc.) before treating this as settled — it isn't something this
 kit can decide on your behalf.
+
+Both chart components render the Highcharts.com credits link by
+default — that's the safe default for a license you haven't confirmed.
+Once you *have* confirmed your license permits removing it, set
+`hide-credits` on that specific `<os-chart-donut>`/`<os-chart-bar>`
+instance. Don't flip the shared component's default to hide it for
+every build — that would silently put every other prototype built from
+this kit out of compliance the next time someone copies it without
+re-checking their own license.
 
 ## Rule: Dashboards Need a Chart, Not Just KPIs
 

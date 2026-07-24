@@ -770,8 +770,11 @@
      your organization's actual Highcharts license (commercial vs. the
      non-commercial EULA — see HIGHCHARTS_LICENSE.txt) covers this use
      before shipping a client-facing build; don't assume it's covered.
-     credits are left ON by default for the same reason — only disable
-     them (credits: { enabled: false }) if your license permits it.
+     credits are left ON by default for the same reason. Set the
+     `hide-credits` attribute to opt a specific chart instance out once
+     you've actually confirmed your license permits it — this is a
+     per-build decision, not something to flip for every consumer of
+     this shared component by changing the default.
      ============================================================ */
   let chartDonutInstanceCounter = 0;
 
@@ -827,7 +830,7 @@
         // testing depends on.
         chart: { type: "pie", width: size, height: size, backgroundColor: "transparent", margin: [0, 0, 0, 0], spacing: [0, 0, 0, 0], animation: false },
         title: { text: null },
-        credits: { enabled: true },
+        credits: { enabled: !this.hasAttribute("hide-credits") },
         legend: { enabled: false },
         tooltip: { pointFormat: "{point.name}: <b>{point.y}</b>" },
         plotOptions: {
@@ -854,7 +857,8 @@
      Property: data [{label, value, color}]
      Attributes: height (default 220), horizontal ("true" for a
      horizontal bar chart, default is a vertical column chart),
-     series-name, x-axis-label, y-axis-label
+     series-name, x-axis-label, y-axis-label, hide-credits (see the
+     licensing note on os-chart-donut above — same rule applies here)
 
      Renders via Highcharts, same as os-chart-donut — see the rule in
      CLAUDE.md "Charting: Highcharts, Not Hand-Rolled". For comparing a
@@ -888,7 +892,7 @@
       window.Highcharts.chart(containerId, {
         chart: { type: horizontal ? "bar" : "column", height: height, backgroundColor: "transparent", animation: false },
         title: { text: null },
-        credits: { enabled: true },
+        credits: { enabled: !this.hasAttribute("hide-credits") },
         legend: { enabled: false },
         xAxis: {
           categories: data.map((d) => d.label),
