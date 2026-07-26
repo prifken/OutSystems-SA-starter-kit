@@ -1,6 +1,6 @@
 name: Golden Fixture Checks
 
-# Runs lint-poc.js + verify-poc.js (scripts/README.md) against both the
+# Runs lint-poc.js + verify-poc.js + check-chart-layout.js (scripts/README.md) against both the
 # committed regression fixture (scripts/golden-fixture/README.md) and the
 # flagship reference example (examples/os-ticketing/ — the file CLAUDE.md
 # tells every SA to copy first), on every change to the shared component
@@ -50,6 +50,10 @@ jobs:
         working-directory: scripts
         run: node verify-poc.js golden-fixture
 
+      - name: Check golden fixture chart layout
+        working-directory: scripts
+        run: node check-chart-layout.js golden-fixture
+
       - name: Lint reference example
         working-directory: scripts
         run: node lint-poc.js ../examples/os-ticketing
@@ -57,6 +61,10 @@ jobs:
       - name: Verify reference example (screenshots + JS error check)
         working-directory: scripts
         run: node verify-poc.js ../examples/os-ticketing
+
+      - name: Check reference example chart layout
+        working-directory: scripts
+        run: node check-chart-layout.js ../examples/os-ticketing
 
       - name: Upload fixture screenshots
         if: always()

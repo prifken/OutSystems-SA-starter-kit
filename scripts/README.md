@@ -20,6 +20,7 @@ npm install
 | `check-logo.js` | Eyeballing a screenshot to guess if a logo will be legible | `node check-logo.js path/to/logo.png` |
 | `lint-poc.js` | Manually re-reading every screen for component/link/consistency drift | `node lint-poc.js path/to/pocs/some-client` |
 | `verify-poc.js` | Hand-writing a fresh Playwright script per build to click through tabs/modals | `node verify-poc.js path/to/pocs/some-client` |
+| `check-chart-layout.js` | Eyeballing a screenshot to guess if a dashboard's chart is present and sized well | `node check-chart-layout.js path/to/pocs/some-client` |
 | `vendor-for-deploy.js` | Manually copying shared files + rewriting `../../` paths by hand before a standalone static-host deploy | `node vendor-for-deploy.js path/to/pocs/some-client` |
 | `scan-secrets.js` | Hoping nobody commits a credential | `node scan-secrets.js` (defaults to whole repo) |
 
@@ -76,6 +77,19 @@ against on every PR that touches `components/` (see the CI workflow in
 thing that answers "did this library change break something?" See
 `golden-fixture/README.md` for what it is and why it was built the way
 it was.
+
+## Full-build test (the standard way to stress-test the whole kit)
+
+`golden-fixture/FULL_BUILD_TEST.md` is the complete, repeatable
+end-to-end procedure: build a fresh app from a discovery-call transcript
+(exercising every rule in `CLAUDE.md` under real decision pressure, not
+just checking a static fixture), rebrand it against a random real
+Fortune 500 company (`BRAND_STRESS_TEST.md`'s randomness, applied to the
+fresh build), then run the full mechanical battery — `lint-poc.js`,
+`verify-poc.js`, `check-chart-layout.js`, `scan-secrets.js` — against the
+result. Run this whenever you want real confidence the kit's current
+state still holds up, not just that the already-built fixture still
+parses.
 
 ## Wiring `scan-secrets.js` as a pre-commit gate (optional, not done automatically)
 

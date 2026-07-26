@@ -10,24 +10,30 @@ a change scoped to one client's own `pocs/` folder, etc. — only the
 **Process** section applies; strike the rest.
 
 See `scripts/README.md` and `scripts/golden-fixture/README.md` for what
-each script/fixture referenced below actually is.
+each script/fixture referenced below actually is —
+`scripts/golden-fixture/FULL_BUILD_TEST.md` is the periodic, deeper
+end-to-end exercise (fresh build from a transcript + random-company
+rebrand + full battery); not a per-PR gate, but worth running whenever
+you want real confidence the kit's current state holds up.
 
 ### Automated — CI must be green (`.github/workflows/golden-fixture.yml`)
 
 - [ ] 1. `lint-poc.js` passes: every `<os-*>` tag used is a real registered component
 - [ ] 2. `tokens.css` is linked and `os-components.js` loads at the end of `<body>`
-- [ ] 3. Every internal `href` resolves (or is intentionally `#`)
+- [ ] 3. Every internal `href`/`src` resolves (or is intentionally `#`)
 - [ ] 4. Sidebar nav markup is identical (mod `active`) across every screen touched
 - [ ] 5. `verify-poc.js` passes: every screen/tab/modal/sidebar trigger opens with zero JS console errors
-- [ ] 6. `scan-secrets.js` finds nothing in the diff
+- [ ] 6. `check-chart-layout.js` passes: any KPI-row dashboard has a chart, and it's sized well (not just present) — see `CLAUDE.md` "Rule: Dashboards Need a Chart, Not Just KPIs"
+- [ ] 7. `scan-secrets.js` finds nothing in the diff
 
 ### Rule #1 — Compose, Don't Invent
 
-- [ ] 7. Any new visual pattern was added to `os-components.js` + `tokens.css` first, then used — not invented inline in a screen file
-- [ ] 8. Small/one-off needs were composed from existing Tier 2 primitives, not bespoke markup or an unnecessary new component
-- [ ] 9. Any new component is added to CLAUDE.md's component table; any new primitive is added to the Primitives table
-- [ ] 10. Any new icon was added to the shared `ICONS` map in `os-components.js`, not inlined ad hoc
-- [ ] 11. New components render into light DOM (`this.innerHTML`), never `attachShadow`
+- [ ] 8. Any new visual pattern was added to `os-components.js` + `tokens.css` first, then used — not invented inline in a screen file
+- [ ] 9. Small/one-off needs were composed from existing Tier 2 primitives, not bespoke markup or an unnecessary new component — and the actual CSS selectors in `tokens.css` were checked before composing a primitive you haven't used before, not just the one-line summary in `CLAUDE.md`'s Primitives table (a guessed structure can render invisibly broken — e.g. `.toggle-switch` is a sibling element, not a class on the `<input>` itself)
+- [ ] 10. Any new component is added to CLAUDE.md's component table; any new primitive is added to the Primitives table
+- [ ] 11. Any new icon was added to the shared `ICONS` map in `os-components.js`, not inlined ad hoc
+- [ ] 12. New components render into light DOM (`this.innerHTML`), never `attachShadow`
+- [ ] 13. Any text passed through a component *property* (`.items =`, `.data =`, `.insight =`, etc.) uses real Unicode characters (`—`, `·`), not HTML entities (`&mdash;`, `&middot;`) — see `CLAUDE.md` Rule #3
 
 ### Visual review — look at the actual screenshots, not just exit codes
 
