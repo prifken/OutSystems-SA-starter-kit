@@ -336,6 +336,22 @@ to flag it without becoming a contributor to this codebase. The mechanism:
 1. **SA files a GitHub issue** using the "Field Feedback" template (three
    buckets: what's working, what's not, or a suggested improvement — plus
    which client/POC surfaced it). No code, no PR, no git knowledge required.
+
+   If an agent (Claude Code or otherwise) is helping file this: default to
+   building a pre-filled issue URL rather than reaching for `gh issue
+   create` first. Assume `gh` may not be installed, or the environment's
+   browser isn't signed into the SA's GitHub account — both are common in
+   the field. The link takes the form
+   `https://github.com/<owner>/<repo>/issues/new?template=field-feedback.yml&<field-id>=<url-encoded-value>`,
+   one query param per template field id (`feedback-type`, `poc-context`,
+   `description`, `component`, `suggested-fix` — see
+   `.github/ISSUE_TEMPLATE/field-feedback.yml` for the current set). Hand
+   the SA the link; it opens GitHub's normal issue form with every field
+   already filled in, so they can review, tweak anything inline, and hit
+   submit themselves. This is deliberately the default, not just a
+   fallback for a missing `gh` CLI — it also keeps the actual "post
+   something public" action with the SA, not an agent acting on their
+   behalf.
 2. **Maintainer triages the issue.** Not everything becomes a change — some
    feedback is client-specific and doesn't generalize, some is a duplicate
    of a known gap. Valid, generalizable feedback gets turned into an actual
