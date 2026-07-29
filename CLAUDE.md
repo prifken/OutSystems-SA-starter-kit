@@ -195,6 +195,27 @@ don't cover a genuinely new, recurring need.
    from a client's site can fail silently (a truncated download, an
    encoding bug in a scraped SVG) and show up only as a broken image at
    render time, not as an error during the pull itself.
+7. Before calling the build done, give the human a short two-part
+   recap — don't file anything yet, this is a checkpoint, not an
+   auto-filing step:
+   - **Friction** — anything that felt off, broken, or fought you while
+     building: a component that behaved unexpectedly, a documented rule
+     that didn't quite fit this client's need, a default you had to work
+     around.
+   - **Reuse candidates** — any markup you hand-rolled from primitives
+     (not a new `os-*` component, per Rule #1) that recurred across this
+     build's own screens, or that felt like it'd show up in the next
+     POC too — a candidate for a future library component, not
+     something to build one-off again next time.
+   Ask the human which items, if any, are worth capturing. For whatever
+   they pick, follow the "Field Feedback Loop" mechanism below — build
+   the pre-filled `issues/new?template=field-feedback.yml&...` link and
+   hand it to them; don't file automatically on their behalf, and don't
+   pad this recap with every minor thing just to look thorough — most
+   POC-specific quirks aren't generalizable and shouldn't be filed at
+   all (that judgment call is exactly what step 2 of the Field Feedback
+   Loop's triage already exists for, so lean toward flagging genuinely
+   recurring or broken things, not everything).
 
 ## Opening Files: Give Clickable Links, Not Bare Paths
 
