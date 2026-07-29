@@ -775,6 +775,13 @@
      you've actually confirmed your license permits it — this is a
      per-build decision, not something to flip for every consumer of
      this shared component by changing the default.
+
+     Hiding credits across every chart in one POC: set
+     `data-hide-chart-credits="true"` once on <body> instead of adding
+     `hide-credits` to every os-chart-donut/os-chart-bar tag — both
+     components check for it as a fallback. Still opt-in per build,
+     still requires a confirmed license; this only removes the need to
+     repeat the attribute on every chart instance.
      ============================================================ */
   let chartDonutInstanceCounter = 0;
 
@@ -830,7 +837,7 @@
         // testing depends on.
         chart: { type: "pie", width: size, height: size, backgroundColor: "transparent", margin: [0, 0, 0, 0], spacing: [0, 0, 0, 0], animation: false },
         title: { text: null },
-        credits: { enabled: !this.hasAttribute("hide-credits") },
+        credits: { enabled: !(this.hasAttribute("hide-credits") || document.body.hasAttribute("data-hide-chart-credits")) },
         legend: { enabled: false },
         tooltip: { pointFormat: "{point.name}: <b>{point.y}</b>" },
         plotOptions: {
@@ -858,7 +865,8 @@
      Attributes: height (default 220), horizontal ("true" for a
      horizontal bar chart, default is a vertical column chart),
      series-name, x-axis-label, y-axis-label, hide-credits (see the
-     licensing note on os-chart-donut above — same rule applies here)
+     licensing note on os-chart-donut above — same rule applies here,
+     including the data-hide-chart-credits body-level fallback)
 
      Renders via Highcharts, same as os-chart-donut — see the rule in
      CLAUDE.md "Charting: Highcharts, Not Hand-Rolled". For comparing a
@@ -892,7 +900,7 @@
       window.Highcharts.chart(containerId, {
         chart: { type: horizontal ? "bar" : "column", height: height, backgroundColor: "transparent", animation: false },
         title: { text: null },
-        credits: { enabled: !this.hasAttribute("hide-credits") },
+        credits: { enabled: !(this.hasAttribute("hide-credits") || document.body.hasAttribute("data-hide-chart-credits")) },
         legend: { enabled: false },
         xAxis: {
           categories: data.map((d) => d.label),

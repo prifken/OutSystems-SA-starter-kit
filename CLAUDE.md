@@ -403,6 +403,14 @@ every build — that would silently put every other prototype built from
 this kit out of compliance the next time someone copies it without
 re-checking their own license.
 
+If a confirmed license covers an entire client POC and you don't want
+to repeat `hide-credits` on every chart tag in that build, set
+`data-hide-chart-credits="true"` once on that POC's `<body>` instead —
+both chart components check for it as a fallback. This is still a
+per-build, per-license opt-in (nothing changes for any other prototype
+built from this kit); it just saves re-adding the attribute to every
+chart instance in the one build where you've confirmed it's covered.
+
 ## Rule: Dashboards Need a Chart, Not Just KPIs
 
 A row of `<os-kpi-card>`s is not a complete dashboard screen. Any screen
