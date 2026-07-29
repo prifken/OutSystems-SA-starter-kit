@@ -187,7 +187,7 @@ os-status-badge { display: inline-flex; }
   transition: opacity 0.15s;
 }
 .sidebar-logo-on-dark:hover { opacity: 1; }
-.sidebar-logo-on-dark img { width: 100%; max-width: 100%; height: auto; max-height: 72px; display: block; }
+.sidebar-logo-on-dark img { width: auto; max-width: 100%; height: auto; max-height: 72px; display: block; }
 
 /* Used when show-brand-label="true" (bare icon + text): a left-aligned
    icon-and-label row instead of a centered hero logo, since it now
