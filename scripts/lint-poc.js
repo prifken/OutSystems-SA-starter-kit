@@ -29,6 +29,17 @@
         will 404 on a standalone static-host deploy even though local
         dev (opening the file from inside the full repo) wouldn't
         catch it, since ../../ still resolves to something there.
+     6. A rebrand's sidebar background (--color-neutral-10) and primary
+        action color (--color-primary) aren't so close in value that
+        <os-sidebar-nav>'s active-item indicator (a border-left painted
+        in --color-primary, on top of the sidebar's own background)
+        becomes invisible against its own panel — unless that screen's
+        CSS also overrides .nav-item.active itself, which means the
+        author already resolved it deliberately (see brand.css in
+        pocs/baldwin-county-schools for the pattern this traces to: a
+        single-dominant-color brand where navy was both the sidebar bg
+        and the primary color, so the active-nav strip disappeared until
+        .nav-item.active got its own light-color override).
 
    This does NOT check copy quality, layout choices, or logo
    legibility — see check-logo.js for the logo case, and use your
@@ -72,6 +83,37 @@ const fail = (msg) => { console.log("  FAIL: " + msg); failCount++; };
 const ok = (msg) => console.log("  ok:   " + msg);
 
 const sidebarBlocks = {}; // file -> normalized sidebar markup (for cross-file consistency check)
+
+// --- Helpers for check 6 (sidebar-vs-primary contrast) ---
+function hexToRgb(hex) {
+  let h = hex.trim().replace(/^#/, "");
+  if (h.length === 3) h = h.split("").map((c) => c + c).join("");
+  if (!/^[0-9a-fA-F]{6}$/.test(h)) return null;
+  const num = parseInt(h, 16);
+  return { r: (num >> 16) & 255, g: (num >> 8) & 255, b: num & 255 };
+}
+function relativeLuminance({ r, g, b }) {
+  const [rs, gs, bs] = [r, g, b].map((v) => {
+    v /= 255;
+    return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+  });
+  return 0.2126 * rs + 0.7152 * gs + 0.0722 * bs;
+}
+function contrastRatio(hexA, hexB) {
+  const rgbA = hexToRgb(hexA);
+  const rgbB = hexToRgb(hexB);
+  if (!rgbA || !rgbB) return null; // non-hex value (e.g. rgba()) — skip rather than guess
+  const [lighter, darker] = [relativeLuminance(rgbA), relativeLuminance(rgbB)].sort((a, b) => b - a);
+  return (lighter + 0.05) / (darker + 0.05);
+}
+// Last match wins, mirroring CSS cascade for repeated :root declarations
+// across concatenated, in-order stylesheets.
+function lastCustomPropertyValue(css, propName) {
+  const re = new RegExp(propName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\s*:\\s*([^;]+);", "g");
+  let match, last = null;
+  while ((match = re.exec(css))) last = match[1].trim();
+  return last;
+}
 
 for (const file of htmlFiles) {
   const rel = path.relative(repoRoot, file);
@@ -146,6 +188,44 @@ for (const file of htmlFiles) {
   if (sidebarMatch) {
     const normalized = sidebarMatch[0].replace(/\bactive="[^"]*"/, 'active="__ACTIVE__"');
     sidebarBlocks[rel] = normalized;
+  }
+
+  // --- Check 6: sidebar background vs. primary-color contrast ---
+  // Only meaningful for screens that actually have a sidebar (a bare
+  // index.html redirect stub doesn't).
+  if (sidebarMatch) {
+    const cssLinkHrefs = [...html.matchAll(/<link\b[^>]*>/g)]
+      .map((m) => m[0])
+      .filter((tag) => /rel=["']stylesheet["']/.test(tag))
+      .map((tag) => tag.match(/href=["']([^"']+)["']/))
+      .filter(Boolean)
+      .map((m) => m[1]);
+    const concatenatedCss = cssLinkHrefs
+      .map((href) => path.resolve(path.dirname(file), href))
+      .filter((p) => fs.existsSync(p))
+      .map((p) => fs.readFileSync(p, "utf8"))
+      .join("\n");
+
+    const sidebarBg = lastCustomPropertyValue(concatenatedCss, "--color-neutral-10");
+    const primary = lastCustomPropertyValue(concatenatedCss, "--color-primary");
+    const hasActiveNavOverride = /\.nav-item\.active\s*\{[^}]*\}/.test(concatenatedCss);
+
+    if (!sidebarBg || !primary) {
+      ok("Sidebar-vs-primary contrast: couldn't resolve both colors (non-hex value?) — skipped.");
+    } else if (hasActiveNavOverride) {
+      ok(`Sidebar-vs-primary contrast: .nav-item.active has its own override in this build's CSS — assumed deliberately resolved.`);
+    } else {
+      const ratio = contrastRatio(sidebarBg, primary);
+      if (ratio === null) {
+        ok("Sidebar-vs-primary contrast: couldn't resolve both colors to hex — skipped.");
+      } else if (ratio < 3.0) {
+        fail(
+          `Sidebar background (--color-neutral-10: ${sidebarBg}) and primary color (--color-primary: ${primary}) have a contrast ratio of ${ratio.toFixed(2)}:1 (WCAG non-text minimum is 3:1) — <os-sidebar-nav>'s active-item indicator (a --color-primary border painted on top of the sidebar background) will be hard or impossible to see. Either pick a --color-primary that contrasts with the sidebar, or add a ".nav-item.active { border-left-color: ...; }" override in this build's own CSS for a light indicator color instead of a second brand color — see pocs/baldwin-county-schools/brand.css.`
+        );
+      } else {
+        ok(`Sidebar-vs-primary contrast: ${ratio.toFixed(2)}:1 (>= 3:1 minimum).`);
+      }
+    }
   }
 }
 
