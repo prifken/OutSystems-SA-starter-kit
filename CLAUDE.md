@@ -373,6 +373,17 @@ to flag it without becoming a contributor to this codebase. The mechanism:
    fallback for a missing `gh` CLI — it also keeps the actual "post
    something public" action with the SA, not an agent acting on their
    behalf.
+
+   Two gotchas in the query params themselves: GitHub only pre-fills
+   `input` and `textarea` template fields this way — a `dropdown` field
+   like `feedback-type` can't be pre-selected via URL no matter how the
+   value is encoded, and will always render unset with a required-field
+   error until the SA manually picks an option. Tell them which option to
+   click rather than assuming the link filled it in. Separately, the
+   template's own default title (`title: "[Feedback]: "`) is just a bare
+   stem — pass your own `&title=<url-encoded-value>` query param (GitHub
+   honors it independently of `template=`) so the SA doesn't land on an
+   empty title field either.
 2. **Maintainer triages the issue.** Not everything becomes a change — some
    feedback is client-specific and doesn't generalize, some is a duplicate
    of a known gap. Valid, generalizable feedback gets turned into an actual
