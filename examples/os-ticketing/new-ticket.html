@@ -164,10 +164,10 @@
     // Wire up demo mode toggle — auto-load demo data when turned on or step changes
     const demoToggle = document.getElementById("demoToggle");
     demoToggle.addEventListener("change", () => {
-      if (demoToggle.checked) wizard._loadDemoData();
+      if (demoToggle.checked) wizard.loadDemo();
     });
     wizard.addEventListener("os-wizard-change", () => {
-      if (demoToggle.checked) wizard._loadDemoData();
+      if (demoToggle.checked) wizard.loadDemo();
     });
 
     function validateCategoryStep() {

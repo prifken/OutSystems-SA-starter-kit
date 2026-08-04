@@ -686,6 +686,11 @@
         }
       });
     }
+
+    // Public API for loading demo data from outside the component
+    loadDemo() {
+      this._loadDemoData();
+    }
   }
 
   /* ============================================================
