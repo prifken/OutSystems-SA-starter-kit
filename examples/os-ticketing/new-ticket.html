@@ -132,7 +132,13 @@
     const subjectInput = document.getElementById("subjectInput");
     const descriptionInput = document.getElementById("descriptionInput");
 
-    // Demo data for quick walkthrough — click "Demo Data" button to auto-fill each step
+    // DEMO DATA — Expected on every wizard-based POC
+    // When building a new prototype, always generate use-case-specific demo data
+    // and set it here. This lets SAs click "Load Demo Data" on any step to auto-fill
+    // with realistic examples, enabling 10-second walkthroughs without manual typing.
+    // Each element in the array corresponds to one wizard step, keyed by input/select/textarea ID.
+    // For checkboxes: use boolean values (true/false). For text inputs: strings.
+    // See CLAUDE.md step 5a "Auto-generate demo data for any wizard" for the full pattern.
     wizard.demoData = [
       // Step 0: Category
       {
