@@ -211,6 +211,15 @@ don't cover a genuinely new, recurring need.
    `os-components.js` + `tokens.css` first (following the pattern of an
    existing component), then use it. Don't build one-off markup in a
    screen file.
+5a. **Auto-generate demo data for any wizard.** If any screen uses
+   `<os-wizard-stepper>`, analyze the form fields and generate
+   use-case-specific example data (student names for a screening form,
+   ticket categories for a ticketing system, etc.). Set
+   `wizard.demoData = [...]` in the page script — one array element per
+   step, with field IDs as keys. When done, clicking the "Load Demo Data"
+   button on any step auto-fills inputs with realistic examples, making
+   10-second walkthroughs possible. See `examples/os-ticketing/new-ticket.html`
+   or `pocs/baldwin-county-schools/new-case.html` for the pattern.
 6. Open the HTML file directly in a browser. No build step, no server,
    no npm install. Before calling the rebrand done, actually look at the
    rendered page (or a screenshot of it) — a logo pulled or extracted
