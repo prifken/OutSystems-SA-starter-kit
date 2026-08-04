@@ -572,6 +572,8 @@
      Each direct child is one step's content:
        <div data-step-label="Category">...fields...</div>
      Attribute: submit-label (button label on the final step, default "Submit")
+     Property: demoData (array of step objects, e.g. [{fieldId1: "value1", fieldId2: "value2"}, ...])
+               If set, shows a "Demo Data" button on each step that auto-fills inputs for quick demos.
      Methods: next(), prev(), goTo(i)
      Events: os-wizard-change {index}, os-wizard-submit
      ============================================================ */
@@ -582,6 +584,7 @@
       this._steps = Array.from(this.children);
       this._current = 0;
       this._submitLabel = this.getAttribute("submit-label") || "Submit";
+      this._demoData = null; // Optional: array of step data objects
       this._buildShell();
       this._renderStep();
     }
@@ -600,7 +603,10 @@
       actions.className = "wizard-actions";
       actions.innerHTML =
         '<button type="button" class="btn btn-secondary" data-action="prev">' + icon("chevron-left", 16) + "Previous</button>" +
-        '<button type="button" class="btn btn-primary" data-action="next">Next Step' + icon("chevron-right", 16) + "</button>";
+        '<div style="display: flex; gap: 8px; margin-left: auto;">' +
+        '<button type="button" class="btn btn-secondary" data-action="demo" style="display:none;">Demo Data</button>' +
+        '<button type="button" class="btn btn-primary" data-action="next">Next Step' + icon("chevron-right", 16) + "</button>" +
+        "</div>";
       this._actionsEl = actions;
 
       this.innerHTML = "";
@@ -610,6 +616,8 @@
 
       actions.querySelector('[data-action="prev"]').addEventListener("click", () => this.prev());
       actions.querySelector('[data-action="next"]').addEventListener("click", () => this._onNext());
+      const demoBtn = actions.querySelector('[data-action="demo"]');
+      if (demoBtn) demoBtn.addEventListener("click", () => this._loadDemoData());
     }
 
     _renderStep() {
@@ -631,9 +639,13 @@
 
       const prevBtn = this._actionsEl.querySelector('[data-action="prev"]');
       const nextBtn = this._actionsEl.querySelector('[data-action="next"]');
+      const demoBtn = this._actionsEl.querySelector('[data-action="demo"]');
       prevBtn.disabled = this._current === 0;
       const isLast = this._current === total - 1;
       nextBtn.innerHTML = isLast ? esc(this._submitLabel) + icon("check", 16) : "Next Step" + icon("chevron-right", 16);
+      if (demoBtn) {
+        demoBtn.style.display = (this._demoData && this._demoData[this._current]) ? "block" : "none";
+      }
 
       this.dispatchEvent(new CustomEvent("os-wizard-change", { detail: { index: this._current } }));
     }
@@ -655,6 +667,24 @@
     prev() { if (this._current > 0) { this._current--; this._renderStep(); } }
     goTo(i) { if (i >= 0 && i < this._steps.length) { this._current = i; this._renderStep(); } }
     get currentIndex() { return this._current; }
+
+    _loadDemoData() {
+      if (!this._demoData || !this._demoData[this._current]) return;
+      const stepData = this._demoData[this._current];
+      const currentStepEl = this._steps[this._current];
+      // Fill inputs: { "fieldId": "value" }
+      // For checkboxes, value is boolean
+      Object.keys(stepData).forEach((key) => {
+        const el = currentStepEl.querySelector("#" + key);
+        if (el) {
+          if (el.type === "checkbox") {
+            el.checked = stepData[key];
+          } else {
+            el.value = stepData[key];
+          }
+        }
+      });
+    }
   }
 
   /* ============================================================

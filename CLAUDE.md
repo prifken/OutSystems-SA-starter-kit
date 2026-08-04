@@ -43,6 +43,28 @@ DOM would encapsulate styles and break that. If you're rebranding for a
 client, override CSS custom properties in a `<style>` tag in the page
 `<head>`, after the `tokens.css` link — no component code changes needed.
 
+## Browser Compatibility Notes
+
+The kit is tested on Chrome, Firefox, Safari, and Edge. If a POC appears
+horizontally squished in Edge at 100% zoom but renders correctly in Chrome,
+it's likely a flex container sizing issue. The `.main-content` class in
+`tokens.css` includes `min-width: 0` to prevent this — if you add custom
+flex layouts, apply the same rule to any flex child that should shrink
+below its content size. (This is a well-known flexbox gotcha: flex containers
+need explicit width constraints to avoid overflow in some browser engines.)
+
+## Keeping Your Kit Updated
+
+When you start a Claude Code session in this directory, **ask Claude to check
+if you're on the latest version** — say something like "Are we using the
+latest starter kit?" or "Do a repo sync check." The kit ships with ongoing
+fixes (logo distortion, chart tweaks, form improvements) that you don't know
+about until you pull them.
+
+Claude can run `bash scripts/check-repo-version.sh` to see if you're behind
+the main branch, and if so, will show you what's changed and offer to pull.
+Takes 10 seconds and ensures you're not debugging something that's already fixed.
+
 ## Rule #1: Compose, Don't Invent
 
 Never write a new component from scratch inside a screen file. If the
@@ -100,7 +122,7 @@ real character — it's correct either way.
 | `<os-status-timeline>` | Vertical event/approval timeline | prop: `items` |
 | `<os-ai-sidebar>` | Slide-in AI assistant panel | props: `insight`, `recommendations`, `activityLog`; methods: `open()`/`close()`/`toggle()` |
 | `<os-modal>` | Confirm/cancel dialog | attrs: `modal-title`, `confirm-label`, `cancel-label`, `variant`; events: `os-modal-confirm`/`os-modal-cancel`; methods: `open()`/`close()` |
-| `<os-wizard-stepper>` | Multi-step form flow | children: `<div data-step-label>`; attr: `submit-label`; hook: `beforeNext(stepIndex)`; events: `os-wizard-change`/`os-wizard-submit` |
+| `<os-wizard-stepper>` | Multi-step form flow | children: `<div data-step-label>`; attr: `submit-label`; prop: `demoData` (array of {fieldId: value} objects, one per step — adds a "Demo Data" button to auto-fill inputs); hook: `beforeNext(stepIndex)`; events: `os-wizard-change`/`os-wizard-submit` |
 | `<os-form-field>` | Label + input/select/textarea wrapper with validation states | attrs: `label`, `required`, `hint`, `error`, `success`; wraps a light-DOM control child |
 | `<os-search-filter-bar>` | Search input + optional extra filters | attr: `placeholder`; event: `os-search`; children render as extra filters |
 | `<os-empty-state>` | Placeholder for empty content | attrs: `icon`, `heading`, `text`, `action-label`, `action-href` |
