@@ -132,6 +132,22 @@
     const subjectInput = document.getElementById("subjectInput");
     const descriptionInput = document.getElementById("descriptionInput");
 
+    // Demo data for quick walkthrough — click "Demo Data" button to auto-fill each step
+    wizard.demoData = [
+      // Step 0: Category
+      {
+        categorySelect: "Network & VPN",
+        prioritySelect: "High"
+      },
+      // Step 1: Details
+      {
+        subjectInput: "VPN disconnects every 10 minutes",
+        descriptionInput: "I'm connecting to the corporate VPN but it keeps dropping the connection every ~10 minutes. This started yesterday after the system update. Error: 'Connection lost — timeout.'"
+      },
+      // Step 2: Review (auto-populated from previous steps)
+      {}
+    ];
+
     function validateCategoryStep() {
       let valid = true;
       const categoryField = document.getElementById("categoryField");
