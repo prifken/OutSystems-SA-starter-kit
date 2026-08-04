@@ -36,6 +36,13 @@
 
       <div class="page">
         <os-card>
+          <div class="flex items-center gap-s mb-base">
+            <label class="toggle">
+              <input type="checkbox" id="demoToggle">
+              <span class="toggle-switch"></span>
+            </label>
+            <span class="text-muted" style="font-size: var(--font-size-s);">Demo mode — auto-fill with example data on each step</span>
+          </div>
           <os-wizard-stepper id="ticketWizard" submit-label="Create Ticket">
 
             <!-- Step 1: Category -->
@@ -153,6 +160,15 @@
       // Step 2: Review (auto-populated from previous steps)
       {}
     ];
+
+    // Wire up demo mode toggle — auto-load demo data when turned on or step changes
+    const demoToggle = document.getElementById("demoToggle");
+    demoToggle.addEventListener("change", () => {
+      if (demoToggle.checked) wizard._loadDemoData();
+    });
+    wizard.addEventListener("os-wizard-change", () => {
+      if (demoToggle.checked) wizard._loadDemoData();
+    });
 
     function validateCategoryStep() {
       let valid = true;

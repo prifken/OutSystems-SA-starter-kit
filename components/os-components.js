@@ -604,7 +604,7 @@
       actions.innerHTML =
         '<button type="button" class="btn btn-secondary" data-action="prev">' + icon("chevron-left", 16) + "Previous</button>" +
         '<div style="display: flex; gap: 8px; margin-left: auto;">' +
-        '<button type="button" class="btn btn-secondary" data-action="demo">Demo Data</button>' +
+        '<button type="button" class="btn btn-secondary" data-action="demo" style="display:none;">Demo Data</button>' +
         '<button type="button" class="btn btn-primary" data-action="next">Next Step' + icon("chevron-right", 16) + "</button>" +
         "</div>";
       this._actionsEl = actions;
