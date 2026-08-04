@@ -589,6 +589,14 @@
       this._renderStep();
     }
 
+    set demoData(data) {
+      this._demoData = data;
+    }
+
+    get demoData() {
+      return this._demoData;
+    }
+
     _buildShell() {
       const stepsRow = document.createElement("div");
       stepsRow.className = "wizard-steps";
