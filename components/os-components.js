@@ -604,7 +604,7 @@
       actions.innerHTML =
         '<button type="button" class="btn btn-secondary" data-action="prev">' + icon("chevron-left", 16) + "Previous</button>" +
         '<div style="display: flex; gap: 8px; margin-left: auto;">' +
-        '<button type="button" class="btn btn-secondary" data-action="demo" style="display:none;">Demo Data</button>' +
+        '<button type="button" class="btn btn-secondary" data-action="demo">Demo Data</button>' +
         '<button type="button" class="btn btn-primary" data-action="next">Next Step' + icon("chevron-right", 16) + "</button>" +
         "</div>";
       this._actionsEl = actions;
@@ -643,8 +643,9 @@
       prevBtn.disabled = this._current === 0;
       const isLast = this._current === total - 1;
       nextBtn.innerHTML = isLast ? esc(this._submitLabel) + icon("check", 16) : "Next Step" + icon("chevron-right", 16);
+      // Demo button is always visible if demoData is configured; disabled if no data for this step
       if (demoBtn) {
-        demoBtn.style.display = (this._demoData && this._demoData[this._current]) ? "block" : "none";
+        demoBtn.disabled = !this._demoData || !this._demoData[this._current];
       }
 
       this.dispatchEvent(new CustomEvent("os-wizard-change", { detail: { index: this._current } }));
