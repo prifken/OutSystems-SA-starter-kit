@@ -106,6 +106,41 @@ prototype you build looking and behaving consistently, and what makes it
 possible for another SA to open your prototype and immediately recognize
 every piece of it.
 
+This applies to icons too: never drop a raw emoji (📋, ✅, 🚀) into a
+screen to stand in for an icon. The kit ships its own Phosphor-derived
+SVG icon set in `os-components.js`'s `ICONS` map — render one with
+`window.osIcon("<name>", size)` in your page script (see
+`new-authorization.html`'s upload icon for the pattern), or via an
+`os-*` component's own `data-icon`/icon-name attribute where one exists.
+Emoji icons look inconsistent across operating systems and fonts, and
+they read as an unpolished, AI-generated shortcut in front of a customer
+— exactly the impression this kit exists to avoid. `npm run check-poc`
+scans every screen for emoji standing in for icons and will flag it.
+
+**Icon + text rows must vertically center, not stretch.** A common
+hand-rolled pattern is an icon next to a title/subtitle pair:
+
+```html
+<div style="display: flex; gap: var(--space-base); ...">
+  <span id="rowIcon"></span>
+  <div>
+    <div style="font-weight: 500;">Title</div>
+    <div style="font-size: 0.9em;">Subtitle</div>
+  </div>
+</div>
+```
+
+Flexbox's default `align-items` is `normal` (which behaves as `stretch`).
+That stretches the icon's wrapper to the full height of the two-line text
+block next to it, and a fixed-size inline SVG doesn't fill or center
+inside that stretched wrapper on its own — it sits near the top, visibly
+offset above the text it's supposed to sit next to. **Always add
+`align-items: center;`** to any flex container pairing an icon with text,
+regardless of whether the text is one line or several. `npm run
+check-poc` checks every screen's rendered layout for this pattern and
+flags a flex row containing an icon where `align-items` is still
+`normal`/`stretch`.
+
 ## Rule #2: Keep Typed Columns Typed
 
 A column whose name implies a type — a `_count`, a date, an amount — must

@@ -12,6 +12,9 @@
  * - Every live nav item leads to a real, distinct page (no fake-active links)
  * - A record-creation flow exists (+ New button → wizard → demo data)
  * - Every detail-style screen has an AI assistant sidebar
+ * - Icons come from the kit's Phosphor-derived icon set, not raw emoji
+ * - Icon+text flex rows are vertically centered, not stretched off-center
+ *   (checked on every screen in the POC, not just the index.html entry point)
  *
  * Usage: npm run check-poc pocs/my-client
  */
@@ -44,8 +47,16 @@ const CHECKS = {
   text: { name: 'Text readability', severity: 'warn' },
   nav: { name: 'Nav item honesty', severity: 'error' },
   creation: { name: 'Record-creation flow', severity: 'error' },
-  aiSidebar: { name: 'AI assistant sidebar on detail screens', severity: 'error' }
+  aiSidebar: { name: 'AI assistant sidebar on detail screens', severity: 'error' },
+  iconLibrary: { name: 'Phosphor icon system (no emoji icons)', severity: 'error' },
+  iconAlignment: { name: 'Icon vertical alignment in flex rows', severity: 'error' }
 };
+
+// Emoji used as an ad-hoc "icon" instead of the kit's SVG icon set
+// (os-components.js's ICONS map / window.osIcon()). Matches common
+// pictographic ranges — deliberately broad, since any emoji standing in
+// for an icon is the thing being flagged, not a specific character.
+const EMOJI_ICON_PATTERN = /[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{2190}-\u{21FF}\u{2B00}-\u{2BFF}]/gu;
 
 class POCValidator {
   constructor(pocPath) {
@@ -105,6 +116,8 @@ class POCValidator {
 
       console.log(`\n🗂️  Checking structural rules across all screens...`);
       this.checkAiSidebarCoverage();
+      this.checkIconLibrary();
+      await this.checkIconAlignmentAcrossScreens(page);
 
       await browser.close();
       this.report();
@@ -430,6 +443,146 @@ class POCValidator {
 
     if (!anyDetailPages) {
       console.log(`  (no detail-style pages found to check for an AI sidebar)`);
+    }
+  }
+
+  // Rule #1 "Compose, Don't Invent": icons must come from os-components.js's
+  // Phosphor-derived ICONS set (via window.osIcon() or an inline <svg>
+  // matching that set) — not raw emoji standing in for an icon. Emoji in
+  // ordinary body copy (a stray "🎉" in placeholder text, say) isn't what
+  // this is after; the signal we actually care about is an emoji sitting
+  // where an icon belongs — immediately before/after a short label inside
+  // a small inline container. Static scan across every HTML file in the
+  // POC, since this isn't a per-viewport visual concern.
+  checkIconLibrary() {
+    const structuralViewport = { name: 'structural (all viewports)' };
+    const htmlFiles = fs.readdirSync(this.pocPath).filter(f => f.endsWith('.html'));
+    let anyFound = false;
+
+    for (const file of htmlFiles) {
+      const filePath = path.join(this.pocPath, file);
+      const source = fs.readFileSync(filePath, 'utf8');
+      const matches = source.match(EMOJI_ICON_PATTERN);
+
+      if (matches) {
+        anyFound = true;
+        this.addIssue('iconLibrary', structuralViewport,
+          `"${file}" uses emoji (${[...new Set(matches)].join(' ')}) where an icon ` +
+          `likely belongs — use the kit's Phosphor-derived icon set instead: ` +
+          `window.osIcon("<name>", size) from os-components.js, or an ` +
+          `os-* component's built-in data-icon attribute. See the ICONS map at ` +
+          `the top of os-components.js for the full available set.`);
+      }
+    }
+
+    if (!anyFound) {
+      console.log(`  ✓ No emoji-as-icon usage found — icons come from the Phosphor set`);
+    }
+  }
+
+  // CLAUDE.md "Icon + text rows must vertically center, not stretch":
+  // catches the exact bug found on authorization-detail.html — an icon
+  // next to a title/subtitle pair, in a flex row whose align-items was
+  // left at the "normal" (stretch) default, which stretches the icon's
+  // wrapper to the text block's full height and leaves the fixed-size
+  // SVG sitting near the top instead of centered.
+  //
+  // This requires rendered layout/computed styles, not static text, so it
+  // navigates directly to every screen in the POC — unlike the visual
+  // checks earlier in validate(), which only ever render whatever
+  // index.html's redirect lands on. That was the real reason this bug
+  // wasn't (and couldn't have been) caught automatically before: no
+  // rendered check ever loaded authorization-detail.html at all. Runs
+  // once per screen at the current (desktop) viewport only — the
+  // misalignment this catches doesn't depend on viewport width, so
+  // checking it three times per screen would be pure repetition.
+  async checkIconAlignmentAcrossScreens(page) {
+    const structuralViewport = { name: 'structural (all viewports)' };
+    const htmlFiles = fs.readdirSync(this.pocPath)
+      .filter(f => f.endsWith('.html') && f !== 'index.html');
+
+    for (const file of htmlFiles) {
+      const fileUrl = `file:///${path.join(this.pocPath, file).replace(/\\/g, '/')}`;
+      await page.goto(fileUrl, { waitUntil: 'networkidle' });
+      await page.waitForTimeout(300);
+
+      const offenders = await page.evaluate(() => {
+        // Only skip components that fully regenerate their own internals
+        // from attributes/properties (os-kpi-card, os-empty-state, etc.)
+        // — their icon/text layout is the kit's job to get right once in
+        // os-components.js, not something a POC screen re-introduces.
+        // Components that instead wrap SA-authored light-DOM children as
+        // their body/content (os-card "children become the body",
+        // os-tabs, os-modal, os-search-filter-bar's "children render as
+        // extra filters") must NOT be excluded — that light-DOM content
+        // is exactly the hand-authored markup this rule exists to check,
+        // and it's where nearly every icon+text row in this kit actually
+        // lives (e.g. the Supporting Documents rows this rule was written
+        // for are children of an os-card). os-wizard-stepper is a partial
+        // exception: its own chrome (step header, action buttons) is
+        // generated, but step content is SA-authored — excluded anyway
+        // since a wizard step containing an icon+text card row is rare,
+        // and the alternative (false-flagging its generated action-button
+        // row) is the more common, more damaging failure mode.
+        const insideOsComponent = el => !!el.closest('os-sidebar-nav, os-ai-sidebar, os-wizard-stepper, os-status-timeline, os-chart-donut, os-chart-bar, os-data-table, os-kpi-card, os-empty-state, os-floorplan-viewer');
+
+        const results = [];
+        document.querySelectorAll('*').forEach(el => {
+          const style = window.getComputedStyle(el);
+          if (style.display !== 'flex' && style.display !== 'inline-flex') return;
+
+          // The pattern this rule targets is exactly two children: a small
+          // icon wrapper and a text/content block beside it — not a page
+          // layout, a nav, or any container that merely has an SVG buried
+          // somewhere deep inside one of several unrelated children.
+          if (el.children.length !== 2) return;
+          if (insideOsComponent(el)) return;
+
+          const alignItems = style.alignItems;
+          if (alignItems === 'center' || alignItems === 'flex-end') return;
+
+          const [first, second] = Array.from(el.children);
+          const iconChild = [first, second].find(c => c.tagName === 'SVG' || (c.children.length <= 1 && c.querySelector('svg')));
+          if (!iconChild) return;
+
+          const iconBox = iconChild.getBoundingClientRect();
+          // Icons are small — this bounds the check to an actual icon
+          // slot, not a sidebar/nav/chart panel that happens to contain
+          // one somewhere inside a much larger subtree.
+          if (iconBox.width > 48 || iconBox.height > 48) return;
+
+          const svg = iconChild.tagName === 'SVG' ? iconChild : iconChild.querySelector('svg');
+          const svgHeight = svg.getBoundingClientRect().height;
+          const rowHeight = el.getBoundingClientRect().height;
+
+          // Flag when the icon wrapper has been stretched well past the
+          // icon's own natural size relative to a visibly taller row —
+          // that gap is what leaves the icon looking top-anchored instead
+          // of centered next to the text beside it.
+          if (rowHeight > svgHeight + 15 && iconBox.height > svgHeight + 5) {
+            results.push({
+              tag: el.tagName,
+              class: el.className || '(no class)',
+              rowHeight: Math.round(rowHeight),
+              svgHeight: Math.round(svgHeight),
+              alignItems
+            });
+          }
+        });
+        return results;
+      });
+
+      for (const offender of offenders) {
+        this.addIssue('iconAlignment', structuralViewport,
+          `"${file}": a <${offender.tag.toLowerCase()} class="${offender.class}"> flex row ` +
+          `pairs an icon with text but has align-items: ${offender.alignItems} — the icon ` +
+          `(${offender.svgHeight}px) sits stretched inside a ${offender.rowHeight}px row ` +
+          `instead of centered. Add align-items: center to the flex container.`);
+      }
+
+      if (offenders.length === 0) {
+        console.log(`  ✓ ${file}: no icon/text vertical alignment issues`);
+      }
     }
   }
 
