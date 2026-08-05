@@ -216,10 +216,10 @@
     });
 
     wizard.addEventListener("os-wizard-submit", () => {
-      // Demo-only: no backend, so we just simulate a create call and
-      // return to the dashboard. Wire this to your ODC REST API in a
-      // real POC — see patterns/odc-api-wiring/ in the SA toolkit.
-      window.location.href = "dashboard.html";
+      // Demo-only: navigate to the newly created ticket's detail page.
+      // In a real POC, wire this to your ODC REST API to create the ticket
+      // and get back the ticket ID — see patterns/odc-api-wiring/ in the SA toolkit.
+      window.location.href = "ticket-detail.html";
     });
   </script>
 </body>

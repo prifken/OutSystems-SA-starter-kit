@@ -678,13 +678,9 @@
     get currentIndex() { return this._current; }
 
     _loadDemoData() {
-      if (!this._demoData || !this._demoData[this._current]) {
-        console.warn("No demo data for step", this._current);
-        return;
-      }
+      if (!this._demoData || !this._demoData[this._current]) return;
       const stepData = this._demoData[this._current];
       const currentStepEl = this._steps[this._current];
-      console.log("Loading demo data for step", this._current, stepData);
       // Fill inputs: { "fieldId": "value" }
       // For checkboxes, value is boolean
       Object.keys(stepData).forEach((key) => {
@@ -692,13 +688,9 @@
         if (el) {
           if (el.type === "checkbox") {
             el.checked = stepData[key];
-            console.log("  Set checkbox", key, "to", stepData[key]);
           } else {
             el.value = stepData[key];
-            console.log("  Set field", key, "to", stepData[key]);
           }
-        } else {
-          console.warn("  Field not found:", key);
         }
       });
     }
