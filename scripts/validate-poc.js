@@ -9,6 +9,9 @@
  * - Responsive layout at multiple viewports
  * - Charts render properly
  * - No visual regressions
+ * - Every live nav item leads to a real, distinct page (no fake-active links)
+ * - A record-creation flow exists (+ New button → wizard → demo data)
+ * - Every detail-style screen has an AI assistant sidebar
  *
  * Usage: npm run check-poc pocs/my-client
  */
@@ -38,7 +41,10 @@ const CHECKS = {
   credits: { name: 'Highcharts credits hidden', severity: 'error' },
   charts: { name: 'Charts render', severity: 'warn' },
   responsive: { name: 'Responsive layout', severity: 'warn' },
-  text: { name: 'Text readability', severity: 'warn' }
+  text: { name: 'Text readability', severity: 'warn' },
+  nav: { name: 'Nav item honesty', severity: 'error' },
+  creation: { name: 'Record-creation flow', severity: 'error' },
+  aiSidebar: { name: 'AI assistant sidebar on detail screens', severity: 'error' }
 };
 
 class POCValidator {
@@ -87,7 +93,18 @@ class POCValidator {
         await this.checkCharts(page, viewport);
         await this.checkResponsive(page, viewport);
         await this.checkReadability(page, viewport);
+
+        // Structural checks don't vary by viewport — run once, at the
+        // first (desktop) pass, rather than repeating the same finding
+        // three times.
+        if (viewport === VIEWPORTS[0]) {
+          await this.checkNavIntegrity(page);
+          await this.checkCreationFlow(page);
+        }
       }
+
+      console.log(`\n🗂️  Checking structural rules across all screens...`);
+      this.checkAiSidebarCoverage();
 
       await browser.close();
       this.report();
@@ -264,6 +281,155 @@ class POCValidator {
       console.log(`  ⚠ Warning: ${textTooSmall} elements with font < 12px`);
     } else {
       console.log(`  ✓ Text sizes reasonable`);
+    }
+  }
+
+  // CLAUDE.md "A Nav Item Is Only 'Live' If It Leads Somewhere Real":
+  // every non-disabled sidebar nav item must point to its own real,
+  // distinct file — not "#", not another live item's href, and the file
+  // must actually exist. Structural, so this runs once, not per-viewport.
+  async checkNavIntegrity(page) {
+    const structuralViewport = { name: 'structural (all viewports)' };
+
+    const navItems = await page.evaluate(() => {
+      return Array.from(document.querySelectorAll('os-sidebar-nav .nav-item')).map(a => ({
+        key: a.getAttribute('data-nav') || '',
+        href: a.getAttribute('href') || '',
+        disabled: a.classList.contains('disabled'),
+        label: a.textContent.trim()
+      }));
+    });
+
+    if (navItems.length === 0) {
+      console.log(`  (no sidebar nav items found to check)`);
+      return;
+    }
+
+    const live = navItems.filter(item => !item.disabled);
+    const seenHrefs = new Map();
+    let allOk = true;
+
+    for (const item of live) {
+      if (item.href === '#') {
+        this.addIssue('nav', structuralViewport,
+          `Nav item "${item.label}" is not marked data-disabled but has href="#" — ` +
+          `either build its screen or add data-disabled="true".`);
+        allOk = false;
+        continue;
+      }
+
+      const targetPath = path.join(this.pocPath, item.href.split('?')[0].split('#')[0]);
+      if (!fs.existsSync(targetPath)) {
+        this.addIssue('nav', structuralViewport,
+          `Nav item "${item.label}" points to "${item.href}", which doesn't exist in the POC — ` +
+          `either build that screen or add data-disabled="true".`);
+        allOk = false;
+        continue;
+      }
+
+      if (seenHrefs.has(item.href)) {
+        this.addIssue('nav', structuralViewport,
+          `Nav item "${item.label}" points to the same file ("${item.href}") as ` +
+          `"${seenHrefs.get(item.href)}" — it looks like a distinct live screen but ` +
+          `isn't one. Build a real page for it or add data-disabled="true".`);
+        allOk = false;
+        continue;
+      }
+      seenHrefs.set(item.href, item.label);
+    }
+
+    if (allOk) {
+      console.log(`  ✓ All ${live.length} live nav item(s) point to real, distinct pages`);
+    }
+  }
+
+  // CLAUDE.md "Every POC Needs a Record-Creation Flow": the list/dashboard
+  // screen must have a "+ New ___" header action leading to a page built
+  // from <os-wizard-stepper>. Structural, runs once.
+  async checkCreationFlow(page) {
+    const structuralViewport = { name: 'structural (all viewports)' };
+
+    const createLink = await page.evaluate(() => {
+      const candidates = Array.from(document.querySelectorAll('.header-actions a.btn-primary, .header-actions a.btn'));
+      const match = candidates.find(a => /new|create|add/i.test(a.textContent));
+      return match ? { href: match.getAttribute('href'), text: match.textContent.trim() } : null;
+    });
+
+    if (!createLink) {
+      this.addIssue('creation', structuralViewport,
+        `No "+ New [Thing]" button found in the header actions — every POC needs a ` +
+        `record-creation entry point (see CLAUDE.md "Every POC Needs a Record-Creation Flow").`);
+      return;
+    }
+
+    const targetPath = path.join(this.pocPath, createLink.href.split('?')[0].split('#')[0]);
+    if (!fs.existsSync(targetPath)) {
+      this.addIssue('creation', structuralViewport,
+        `Creation button ("${createLink.text}") points to "${createLink.href}", which doesn't exist.`);
+      return;
+    }
+
+    const wizardSource = fs.readFileSync(targetPath, 'utf8');
+    if (!/<os-wizard-stepper/i.test(wizardSource)) {
+      this.addIssue('creation', structuralViewport,
+        `Creation button leads to "${createLink.href}", but that page has no ` +
+        `<os-wizard-stepper> — the creation flow must be a wizard, not a bare form.`);
+      return;
+    }
+
+    if (!/\.demoData\s*=/.test(wizardSource)) {
+      this.addIssue('creation', structuralViewport,
+        `"${createLink.href}" has a wizard but never sets its .demoData property — ` +
+        `add use-case-specific demo data so the "Load Demo Data" button works ` +
+        `(see CLAUDE.md step 5a).`);
+      return;
+    }
+
+    console.log(`  ✓ Creation flow found: "${createLink.text}" → ${createLink.href} (wizard + demo data)`);
+  }
+
+  // CLAUDE.md "Every Detail Screen Needs an AI Assistant Sidebar": any file
+  // that looks like a record-detail screen (has os-status-timeline or
+  // os-tabs — the pattern ticket-detail.html established) must also
+  // include os-ai-sidebar. Pure filesystem scan across the whole POC
+  // folder, since detail pages aren't reachable from the index.html
+  // redirect chain the other checks ride along on.
+  checkAiSidebarCoverage() {
+    const structuralViewport = { name: 'structural (all viewports)' };
+
+    const htmlFiles = fs.readdirSync(this.pocPath)
+      .filter(f => f.endsWith('.html') && f !== 'index.html');
+
+    let anyDetailPages = false;
+
+    for (const file of htmlFiles) {
+      const filePath = path.join(this.pocPath, file);
+      const source = fs.readFileSync(filePath, 'utf8');
+      const looksLikeDetailPage = /<os-status-timeline|<os-tabs/i.test(source);
+
+      if (!looksLikeDetailPage) continue;
+      anyDetailPages = true;
+
+      if (!/<os-ai-sidebar/i.test(source)) {
+        this.addIssue('aiSidebar', structuralViewport,
+          `"${file}" looks like a record-detail screen but has no <os-ai-sidebar> — ` +
+          `every detail screen needs one (see CLAUDE.md "Every Detail Screen Needs ` +
+          `an AI Assistant Sidebar").`);
+        continue;
+      }
+
+      const hasTrigger = /aiToggleBtn|data-verify-open=["']ai-sidebar["']|aiSidebar\.toggle\(\)/i.test(source);
+      if (!hasTrigger) {
+        this.addIssue('aiSidebar', structuralViewport,
+          `"${file}" has <os-ai-sidebar> but no visible trigger button wired to toggle it.`);
+        continue;
+      }
+
+      console.log(`  ✓ ${file}: AI assistant sidebar present with a trigger`);
+    }
+
+    if (!anyDetailPages) {
+      console.log(`  (no detail-style pages found to check for an AI sidebar)`);
     }
   }
 

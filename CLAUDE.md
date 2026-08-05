@@ -213,7 +213,24 @@ don't cover a genuinely new, recurring need.
 3. Swap the sidebar nav items, KPI labels, table columns/rows, and copy —
    leave the component tags alone.
 4. Rebrand for the client — do this in parallel with step 1-3, not as an
-   afterthought. Find the client's real website and pull two things from
+   afterthought. **Before searching for anything, ask the user how they
+   want the logo sourced** — once you know the client/use case (from a
+   transcript, a name, whatever kicked off the build), present the choice
+   rather than silently picking one:
+   - **Speed** — skip logo sourcing entirely, build with no logo (blank
+     logo slot) so the prototype is ready as fast as possible.
+   - **Convenience** — the agent searches for and picks a logo itself
+     (Google Images, per the sourcing steps below), which takes a little
+     longer but means the user doesn't have to do anything.
+   - **User-provided** — the user supplies the exact logo file/variant to
+     use, skipping search entirely.
+
+   This is a real tradeoff, not busywork — don't assume the user always
+   wants the most thorough option. Only proceed to the steps below once
+   they've picked "convenience" (agent searches) or handed you a file
+   directly (in which case go straight to placing it, no search needed).
+
+   Find the client's real website and pull two things from
    it, not just one:
    - **Logo** — download the actual logo asset (see "Logo Placement"
      below for the direct-placement vs. chip decision).
@@ -556,3 +573,75 @@ chart answers "how many loads of each status" and its bar chart answers
 transcript actually raises (Dana asks about status breakdowns and
 repeatedly frames the dashboard around "my dispatch team"), not
 decoration added to fill space.
+
+## Rule: A Nav Item Is Only "Live" If It Leads Somewhere Real
+
+`<os-sidebar-nav>` children render as normal-looking, clickable nav items
+by default. That's the correct look for a real screen — but it's actively
+misleading for anything else, because a customer watching a demo has no
+way to tell "this leads to a page" from "this is just here to show the
+product's full breadth" until they click it and nothing happens (or worse,
+it silently reloads the current screen under a different label).
+
+The rule: a nav `<a>` is only allowed to render as a normal, clickable item
+if it points to its own real, distinct HTML file that actually exists in
+the POC. That means:
+
+- Its `href` must **not** be `#`.
+- Its `href` must **not** be another nav item's `href` — pointing
+  "Authorizations" and "Dashboard" at the same `dashboard.html` file
+  looks fine at rest (both appear active) but breaks the moment someone
+  clicks "Authorizations" expecting a distinct screen and gets the
+  dashboard again.
+- The file it points to must actually exist in the POC folder.
+
+If a nav item doesn't meet all three — because you haven't built that
+screen yet, or it's there purely to convey "this product also does X" —
+set `data-disabled="true"` on it. That's not a lesser or unfinished state;
+it's the correct, honest state for a screen that isn't part of this demo.
+`Dashboard` (or whatever the POC's real entry screen is) should always be
+live; every other item should be live only once its own screen exists.
+
+## Rule: Every POC Needs a Record-Creation Flow
+
+A list or dashboard screen that only ever shows existing records (tickets,
+authorizations, cases — whatever the domain's core object is) tells half
+the story. The other half — someone creating a new one — is exactly the
+kind of flow a customer wants to see walked through live, and it's cheap
+to build because `<os-wizard-stepper>` already exists for it. Every POC
+needs this end to end, not just the list/detail pair:
+
+1. A **"+ New [Thing]"** button in the header actions (top-right) of the
+   main list/dashboard screen — see `examples/os-ticketing/dashboard.html`'s
+   "+ New Ticket" button for the pattern.
+2. That button leads to a screen built from `<os-wizard-stepper>`, broken
+   into the steps that make sense for the domain.
+3. Per CLAUDE.md step 5a (see "How to Build a New Prototype" above), that
+   wizard's `demoData` property must be set with realistic, use-case-
+   specific example values — one array element per step — so the "Load
+   Demo Data" button lets someone drive the whole flow in seconds without
+   typing.
+4. Submitting the wizard (`os-wizard-submit`) navigates to a detail page
+   for the newly-created record — the same detail screen pattern any
+   existing row in the list already links to.
+
+This isn't optional polish — a POC with a list and a detail screen but no
+way to create a record reads as half-built the moment a customer asks
+"okay, show me how I'd add one."
+
+## Rule: Every Detail Screen Needs an AI Assistant Sidebar
+
+Every record-detail screen (the pattern `os-ticketing/ticket-detail.html`
+established) must include `<os-ai-sidebar>` and a visible trigger — an
+"AI Assistant" button in the header actions that calls `.toggle()` on it,
+the same way `ticket-detail.html` wires its `aiToggleBtn`. Populate
+`insight`, `recommendations`, and `activityLog` with content specific to
+the record on screen (don't leave the ticketing example's placeholder
+copy in place) — see `examples/os-ticketing/ticket-detail.html` for the
+full wiring pattern.
+
+This is a standing requirement, not a nice-to-have: OutSystems' platform
+pitch increasingly centers on agentic AI woven into a business process
+(see "How to Build a New Prototype" and the transcripts this kit gets
+built from), and a detail screen with no AI surface at all undersells
+that story on every single POC that omits it.
