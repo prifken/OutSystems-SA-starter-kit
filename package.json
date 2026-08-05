@@ -1,0 +1,22 @@
+{
+  "name": "outsystems-sa-starter-kit",
+  "version": "1.0.0",
+  "description": "Minimal, self-contained component library for building customer-facing HTML prototypes fast",
+  "type": "commonjs",
+  "scripts": {
+    "check-poc": "node scripts/validate-poc.js",
+    "validate": "echo 'Run: npm run check-poc <path/to/poc>'"
+  },
+  "devDependencies": {
+    "playwright": "^1.62.1"
+  },
+  "keywords": [
+    "outsystems",
+    "prototype",
+    "sales",
+    "poc",
+    "component-library"
+  ],
+  "author": "OutSystems",
+  "license": "MIT"
+}

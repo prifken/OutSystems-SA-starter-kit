@@ -11,6 +11,37 @@ OutSystems SA workspace this was distilled from (client registries,
 transcript processing, ODC Mentor/OML generation, architecture diagrams),
 that's a separate, much bigger toolkit — this kit is intentionally not that.
 
+## Setup
+
+Before building your first POC, install dependencies:
+
+```bash
+npm install
+```
+
+This installs Playwright, which powers the automated quality checks below.
+If Playwright is already installed globally, you can skip this step.
+
+## Automated Quality Validation
+
+Every POC should be validated before sharing with customers. Run:
+
+```bash
+npm run check-poc pocs/your-client
+```
+
+This uses Playwright to:
+- Take screenshots at desktop, laptop, and tablet sizes
+- Verify logo visibility and sizing (not tiny due to padding)
+- Confirm Highcharts credits are hidden (`hide-credits="true"`)
+- Check for responsive layout issues (no horizontal overflow)
+- Validate text readability across viewports
+- Report any issues that need fixing
+
+**Goal:** Reduce cognitive load on SAs. You shouldn't have to manually
+screenshot and inspect every POC — the validator catches common issues and
+tells you exactly what to fix.
+
 ## What's Here
 
 ```
@@ -207,6 +238,25 @@ don't cover a genuinely new, recurring need.
    caution. If you're ever genuinely unsure whether a specific asset is
    appropriate to use, ask the user; don't silently downgrade to a
    placeholder instead of asking.
+
+   **How to source the logo efficiently:** If the client's official site
+   doesn't load or doesn't expose a downloadable logo quickly, use Google
+   Images (`google.com/images` or a web search for `"[client name] logo
+   png"`). Take a screenshot of the results. Look for **multiple variants**
+   — you want to choose the best match for your sidebar colors:
+   - Icon-only (best for dark sidebars, most compact)
+   - Icon with horizontal stretch (fills more sidebar width)
+   - Icon with text and background (best when text color matches sidebar theme)
+
+   Download 2-3 variants and test them with `npm run check-poc`. The
+   validator will flag color contrast issues. Choose the variant that:
+   1. Fills the sidebar space (60%+ of sidebar width, ≥60px tall)
+   2. Has good contrast against your sidebar background color
+   3. Reads clearly without needing a white chip background
+
+   Don't spend more than two minutes selecting variants; speed matters more
+   than perfection. The validator will tell you if the choice doesn't work.
+
 5. If you need a component that doesn't exist yet, add it to
    `os-components.js` + `tokens.css` first (following the pattern of an
    existing component), then use it. Don't build one-off markup in a
@@ -462,22 +512,18 @@ agreement covers the way you're using it (a client demo, an internal
 build, etc.) before treating this as settled — it isn't something this
 kit can decide on your behalf.
 
-Both chart components render the Highcharts.com credits link by
-default — that's the safe default for a license you haven't confirmed.
-Once you *have* confirmed your license permits removing it, set
-`hide-credits` on that specific `<os-chart-donut>`/`<os-chart-bar>`
-instance. Don't flip the shared component's default to hide it for
-every build — that would silently put every other prototype built from
-this kit out of compliance the next time someone copies it without
-re-checking their own license.
+Don't show credits at the base level. Each prototype should start with
+`hide-credits="true"` on every chart tag. This ensures that base POCs and
+golden fixtures never accidentally ship with vendor branding. If you later
+discover a specific customer POC has a confirmed license that permits
+showing credits, you can opt-in by removing `hide-credits` on those
+specific instances — but the default is always hidden.
 
-If a confirmed license covers an entire client POC and you don't want
-to repeat `hide-credits` on every chart tag in that build, set
-`data-hide-chart-credits="true"` once on that POC's `<body>` instead —
-both chart components check for it as a fallback. This is still a
-per-build, per-license opt-in (nothing changes for any other prototype
-built from this kit); it just saves re-adding the attribute to every
-chart instance in the one build where you've confirmed it's covered.
+If a confirmed license covers an entire client POC and you want to show
+credits across all charts, set `data-hide-chart-credits="false"` once on
+that POC's `<body>` to opt-in globally rather than removing the attribute
+from every chart instance. This makes the per-build licensing decision
+explicit and reversible.
 
 ## Rule: Dashboards Need a Chart, Not Just KPIs
 

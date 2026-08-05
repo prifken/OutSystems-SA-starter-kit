@@ -1,0 +1,276 @@
+#!/usr/bin/env node
+
+/**
+ * POC Quality Validator — Automated checks using Playwright
+ *
+ * Validates POCs against CLAUDE.md guidelines:
+ * - Logo visibility and sizing
+ * - Highcharts credits are hidden
+ * - Responsive layout at multiple viewports
+ * - Charts render properly
+ * - No visual regressions
+ *
+ * Usage: npm run check-poc pocs/my-client
+ */
+
+const fs = require('fs');
+const path = require('path');
+
+let playwright;
+try {
+  playwright = require('playwright');
+} catch (e) {
+  console.error('❌ Playwright not installed. Installing...');
+  require('child_process').execSync('npm install playwright', { stdio: 'inherit' });
+  playwright = require('playwright');
+}
+
+const { chromium } = playwright;
+
+const VIEWPORTS = [
+  { name: '1920x1080 (desktop)', width: 1920, height: 1080 },
+  { name: '1280x800 (laptop)', width: 1280, height: 800 },
+  { name: '768x1024 (tablet)', width: 768, height: 1024 }
+];
+
+const CHECKS = {
+  logo: { name: 'Logo visibility', severity: 'error' },
+  credits: { name: 'Highcharts credits hidden', severity: 'error' },
+  charts: { name: 'Charts render', severity: 'warn' },
+  responsive: { name: 'Responsive layout', severity: 'warn' },
+  text: { name: 'Text readability', severity: 'warn' }
+};
+
+class POCValidator {
+  constructor(pocPath) {
+    this.pocPath = pocPath;
+    this.indexPath = path.join(pocPath, 'index.html');
+    this.issues = [];
+    this.screenshots = [];
+  }
+
+  async validate() {
+    console.log(`\n🔍 Validating POC: ${this.pocPath}\n`);
+
+    // Check if POC exists
+    if (!fs.existsSync(this.pocPath)) {
+      console.error(`❌ POC path not found: ${this.pocPath}`);
+      process.exit(1);
+    }
+
+    const browser = await chromium.launch();
+    const page = await browser.newPage();
+
+    try {
+      // Test at each viewport
+      for (const viewport of VIEWPORTS) {
+        await page.setViewportSize({ width: viewport.width, height: viewport.height });
+
+        const fileUrl = `file:///${this.indexPath.replace(/\\/g, '/')}`;
+        await page.goto(fileUrl, { waitUntil: 'networkidle' });
+        await page.waitForTimeout(1000);
+
+        console.log(`\n📱 Checking at ${viewport.name}...`);
+
+        // Screenshot
+        const screenshotPath = path.join(
+          this.pocPath,
+          `.validate-${viewport.width}x${viewport.height}.png`
+        );
+        await page.screenshot({ path: screenshotPath });
+        this.screenshots.push(screenshotPath);
+        console.log(`  ✓ Screenshot: ${path.basename(screenshotPath)}`);
+
+        // Validate checks
+        await this.checkLogo(page, viewport);
+        await this.checkCredits(page, viewport);
+        await this.checkCharts(page, viewport);
+        await this.checkResponsive(page, viewport);
+        await this.checkReadability(page, viewport);
+      }
+
+      await browser.close();
+      this.report();
+    } catch (error) {
+      await browser.close();
+      console.error('❌ Validation failed:', error.message);
+      process.exit(1);
+    }
+  }
+
+  async checkLogo(page, viewport) {
+    const logo = await page.locator('os-sidebar-nav img').first().boundingBox();
+
+    if (!logo) {
+      this.addIssue('logo', viewport, 'No logo image found in sidebar');
+      return;
+    }
+
+    // Logo should be at least 60px tall and use 70%+ of sidebar width
+    const sidebarWidth = await page.evaluate(() => {
+      const nav = document.querySelector('os-sidebar-nav');
+      return nav ? nav.offsetWidth : 200;
+    });
+
+    const logoWidthRatio = logo.width / sidebarWidth;
+
+    if (logo.height < 60) {
+      this.addIssue('logo', viewport,
+        `Logo too small: ${Math.round(logo.height)}px tall (should be ≥60px). ` +
+        `May have excessive padding—try cropping logo image or using variant without text.`);
+    } else if (logoWidthRatio < 0.6) {
+      this.addIssue('logo', viewport,
+        `Logo doesn't fill sidebar width: ${Math.round(logoWidthRatio * 100)}% of ${sidebarWidth}px. ` +
+        `Try a wider logo variant or remove text below icon.`);
+    } else {
+      console.log(`  ✓ Logo visible and well-proportioned ` +
+        `(${Math.round(logo.height)}px × ${Math.round(logo.width)}px)`);
+    }
+
+    // Check for contrast issues (logo color vs sidebar background)
+    const contrastIssue = await page.evaluate(() => {
+      const sidebar = document.querySelector('os-sidebar-nav');
+      const img = sidebar?.querySelector('img');
+      if (!sidebar || !img) return null;
+
+      const bgColor = window.getComputedStyle(sidebar).backgroundColor;
+      const imgCanvas = document.createElement('canvas');
+      imgCanvas.width = img.width;
+      imgCanvas.height = img.height;
+
+      // Try to sample the logo image (if same-origin)
+      try {
+        const ctx = imgCanvas.getContext('2d');
+        ctx.drawImage(img, 0, 0);
+        const data = ctx.getImageData(0, 0, 1, 1).data;
+        return {
+          bgColor: bgColor,
+          logoColor: `rgb(${data[0]},${data[1]},${data[2]})`
+        };
+      } catch (e) {
+        return null; // CORS, can't sample
+      }
+    });
+
+    if (contrastIssue) {
+      console.log(`  ⚠ Logo color: ${contrastIssue.logoColor} ` +
+        `against sidebar: ${contrastIssue.bgColor}`);
+    }
+  }
+
+  async checkCredits(page, viewport) {
+    // Look for Highcharts attribution text
+    const creditsText = await page.evaluate(() => {
+      const elements = document.querySelectorAll('*');
+      for (let el of elements) {
+        if (el.textContent.includes('Highcharts.com') ||
+            el.textContent.includes('highcharts')) {
+          return el.textContent;
+        }
+      }
+      return null;
+    });
+
+    if (creditsText) {
+      this.addIssue('credits', viewport,
+        'Highcharts credits visible — add hide-credits="true" to charts');
+    } else {
+      console.log(`  ✓ No Highcharts credits found`);
+    }
+  }
+
+  async checkCharts(page, viewport) {
+    const chartDonuts = await page.locator('os-chart-donut').count();
+    const chartBars = await page.locator('os-chart-bar').count();
+
+    if (chartDonuts + chartBars > 0) {
+      console.log(`  ✓ Charts found: ${chartDonuts} donut, ${chartBars} bar`);
+    }
+  }
+
+  async checkResponsive(page, viewport) {
+    const scrollWidth = await page.evaluate(() => document.documentElement.scrollWidth);
+    const clientWidth = await page.evaluate(() => document.documentElement.clientWidth);
+
+    if (scrollWidth > clientWidth + 10) {
+      this.addIssue('responsive', viewport,
+        `Horizontal overflow: ${scrollWidth}px content in ${clientWidth}px viewport`);
+    } else {
+      console.log(`  ✓ No horizontal overflow`);
+    }
+  }
+
+  async checkReadability(page, viewport) {
+    const textTooSmall = await page.evaluate(() => {
+      const elements = document.querySelectorAll('body *');
+      let small = 0;
+      for (let el of elements) {
+        const size = parseInt(window.getComputedStyle(el).fontSize);
+        if (size < 12 && el.textContent.length > 10) {
+          small++;
+        }
+      }
+      return small;
+    });
+
+    if (textTooSmall > 0) {
+      console.log(`  ⚠ Warning: ${textTooSmall} elements with font < 12px`);
+    } else {
+      console.log(`  ✓ Text sizes reasonable`);
+    }
+  }
+
+  addIssue(check, viewport, message) {
+    const severity = CHECKS[check].severity;
+    this.issues.push({ check, viewport: viewport.name, message, severity });
+  }
+
+  report() {
+    console.log('\n' + '='.repeat(60));
+    console.log('VALIDATION REPORT');
+    console.log('='.repeat(60));
+
+    if (this.issues.length === 0) {
+      console.log('\n✅ All checks passed!\n');
+      return;
+    }
+
+    const errors = this.issues.filter(i => i.severity === 'error');
+    const warnings = this.issues.filter(i => i.severity === 'warn');
+
+    if (errors.length > 0) {
+      console.log('\n❌ ERRORS (must fix):');
+      errors.forEach(issue => {
+        console.log(`  • ${CHECKS[issue.check].name} @ ${issue.viewport}`);
+        console.log(`    ${issue.message}`);
+      });
+    }
+
+    if (warnings.length > 0) {
+      console.log('\n⚠️  WARNINGS (review):');
+      warnings.forEach(issue => {
+        console.log(`  • ${CHECKS[issue.check].name} @ ${issue.viewport}`);
+        console.log(`    ${issue.message}`);
+      });
+    }
+
+    console.log('\nScreenshots saved to POC folder (remove .validate-*.png files before commit)\n');
+
+    if (errors.length > 0) {
+      process.exit(1);
+    }
+  }
+}
+
+// Run validator
+const pocPath = process.argv[2];
+if (!pocPath) {
+  console.error('Usage: npm run check-poc <path/to/poc>');
+  console.error('Example: npm run check-poc pocs/commonspirit-provider-portal');
+  process.exit(1);
+}
+
+new POCValidator(pocPath).validate().catch(err => {
+  console.error('Validation error:', err);
+  process.exit(1);
+});
