@@ -128,18 +128,26 @@ class POCValidator {
       return;
     }
 
-    // Logo should be at least 60px tall and use 70%+ of sidebar width
     const sidebarWidth = await page.evaluate(() => {
       const nav = document.querySelector('os-sidebar-nav');
       return nav ? nav.offsetWidth : 200;
     });
 
     const logoWidthRatio = logo.width / sidebarWidth;
+    const aspectRatio = logo.width / logo.height;
 
-    if (logo.height < 60) {
+    // A square/icon-shaped mark (aspect <= 2) needs an absolute height floor,
+    // since a badge that's technically "wide enough" but only 20px tall still
+    // reads as tiny. A wide wordmark (aspect > 2) is naturally shorter once
+    // it's width-constrained to the sidebar — for those, filling the width
+    // is what matters, not hitting the same absolute height as an icon mark.
+    const isWideWordmark = aspectRatio > 2;
+    const minHeight = isWideWordmark ? 36 : 60;
+
+    if (logo.height < minHeight) {
       const shot = await this.captureRegion(page, viewport, logo, 'logo');
       this.addIssue('logo', viewport,
-        `Logo too small: ${Math.round(logo.height)}px tall (should be ≥60px). ` +
+        `Logo too small: ${Math.round(logo.height)}px tall (should be ≥${minHeight}px). ` +
         `May have excessive padding—try cropping logo image or using variant without text.`,
         shot);
     } else if (logoWidthRatio < 0.6) {
