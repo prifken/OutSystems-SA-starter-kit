@@ -98,6 +98,28 @@ class POCValidator {
     }
   }
 
+  // Screenshot a specific element's bounding box (plus padding) so a flagged
+  // issue can be visually confirmed without hunting through the full-page
+  // screenshot. Returns the saved path, or null if the box is degenerate.
+  async captureRegion(page, viewport, box, label, padding = 24) {
+    if (!box || box.width <= 0 || box.height <= 0) return null;
+
+    const clip = {
+      x: Math.max(0, box.x - padding),
+      y: Math.max(0, box.y - padding),
+      width: box.width + padding * 2,
+      height: box.height + padding * 2
+    };
+
+    const regionPath = path.join(
+      this.pocPath,
+      `.validate-issue-${label}-${viewport.width}x${viewport.height}.png`
+    );
+    await page.screenshot({ path: regionPath, clip });
+    this.screenshots.push(regionPath);
+    return regionPath;
+  }
+
   async checkLogo(page, viewport) {
     const logo = await page.locator('os-sidebar-nav img').first().boundingBox();
 
@@ -115,13 +137,17 @@ class POCValidator {
     const logoWidthRatio = logo.width / sidebarWidth;
 
     if (logo.height < 60) {
+      const shot = await this.captureRegion(page, viewport, logo, 'logo');
       this.addIssue('logo', viewport,
         `Logo too small: ${Math.round(logo.height)}px tall (should be ≥60px). ` +
-        `May have excessive padding—try cropping logo image or using variant without text.`);
+        `May have excessive padding—try cropping logo image or using variant without text.`,
+        shot);
     } else if (logoWidthRatio < 0.6) {
+      const shot = await this.captureRegion(page, viewport, logo, 'logo');
       this.addIssue('logo', viewport,
         `Logo doesn't fill sidebar width: ${Math.round(logoWidthRatio * 100)}% of ${sidebarWidth}px. ` +
-        `Try a wider logo variant or remove text below icon.`);
+        `Try a wider logo variant or remove text below icon.`,
+        shot);
     } else {
       console.log(`  ✓ Logo visible and well-proportioned ` +
         `(${Math.round(logo.height)}px × ${Math.round(logo.width)}px)`);
@@ -159,23 +185,36 @@ class POCValidator {
   }
 
   async checkCredits(page, viewport) {
-    // Look for Highcharts attribution text
-    const creditsText = await page.evaluate(() => {
-      const elements = document.querySelectorAll('*');
-      for (let el of elements) {
-        if (el.textContent.includes('Highcharts.com') ||
-            el.textContent.includes('highcharts')) {
-          return el.textContent;
-        }
+    // Highcharts always renders hidden accessibility metadata (an SVG <desc>
+    // reading "Created with Highcharts X.Y.Z" and a zero-size palette
+    // <style> tag) regardless of the credits.enabled setting — neither is
+    // ever visible to a user, so scanning textContent for "highcharts"
+    // anywhere in the DOM produces false positives on every chart, hidden
+    // or not. The actual on-page attribution is the clickable
+    // ".highcharts-credits" link — check for that specifically, and only
+    // flag it if actually visible (not display:none/opacity:0).
+    let visibleCreditsBox = null;
+    const visibleCredits = await page.evaluate(() => {
+      const links = document.querySelectorAll('.highcharts-credits');
+      for (const link of links) {
+        const rect = link.getBoundingClientRect();
+        const style = window.getComputedStyle(link);
+        const isVisible = rect.width > 0 && rect.height > 0 &&
+          style.display !== 'none' && style.visibility !== 'hidden' &&
+          parseFloat(style.opacity) > 0;
+        if (isVisible) return link.textContent;
       }
       return null;
     });
 
-    if (creditsText) {
+    if (visibleCredits) {
+      visibleCreditsBox = await page.locator('.highcharts-credits').first().boundingBox();
+      const shot = await this.captureRegion(page, viewport, visibleCreditsBox, 'credits');
       this.addIssue('credits', viewport,
-        'Highcharts credits visible — add hide-credits="true" to charts');
+        `Highcharts credits visible ("${visibleCredits}") — add hide-credits="true" to the chart tag`,
+        shot);
     } else {
-      console.log(`  ✓ No Highcharts credits found`);
+      console.log(`  ✓ No visible Highcharts credits`);
     }
   }
 
@@ -220,9 +259,9 @@ class POCValidator {
     }
   }
 
-  addIssue(check, viewport, message) {
+  addIssue(check, viewport, message, screenshot = null) {
     const severity = CHECKS[check].severity;
-    this.issues.push({ check, viewport: viewport.name, message, severity });
+    this.issues.push({ check, viewport: viewport.name, message, severity, screenshot });
   }
 
   report() {
@@ -243,6 +282,9 @@ class POCValidator {
       errors.forEach(issue => {
         console.log(`  • ${CHECKS[issue.check].name} @ ${issue.viewport}`);
         console.log(`    ${issue.message}`);
+        if (issue.screenshot) {
+          console.log(`    📸 See: ${path.basename(issue.screenshot)}`);
+        }
       });
     }
 
@@ -251,10 +293,14 @@ class POCValidator {
       warnings.forEach(issue => {
         console.log(`  • ${CHECKS[issue.check].name} @ ${issue.viewport}`);
         console.log(`    ${issue.message}`);
+        if (issue.screenshot) {
+          console.log(`    📸 See: ${path.basename(issue.screenshot)}`);
+        }
       });
     }
 
-    console.log('\nScreenshots saved to POC folder (remove .validate-*.png files before commit)\n');
+    console.log('\nFull-page screenshots + cropped issue close-ups saved to POC folder');
+    console.log('(remove .validate-*.png files before commit)\n');
 
     if (errors.length > 0) {
       process.exit(1);
